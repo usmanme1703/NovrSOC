@@ -24,15 +24,15 @@ export const ManagerDashboard = () => {
                                         className="w-full bg-gradient-to-t from-[#7C3AED] to-[#A78BFA] rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200"
                                         style={{ height: `${val / 1.1}%` }}
                                     />
-                                    <span className="text-[9px] text-gray-400 dark:text-gray-600 mt-1.5 font-medium">{i + 1}</span>
+                                    <span className="text-[9px] text-gray-400 mt-1.5 font-medium">{i + 1}</span>
                                 </div>
                             ))}
                         </div>
                     </ChartWrapper>
                 </div>
 
-                <div className="bg-white dark:bg-[#0B0F19] border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                    <h3 className="font-bold text-gray-700 dark:text-gray-300 text-[11px] tracking-widest uppercase mb-5">Analyst Workload Distribution</h3>
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                    <h3 className="font-bold text-gray-700 text-[11px] tracking-widest uppercase mb-5">Analyst Workload Distribution</h3>
                     <div className="space-y-5">
                         {[
                             { name: 'Mubarak A.', count: '4 Active Cases', width: '80%', color: 'bg-[#2563EB]' },
@@ -40,10 +40,10 @@ export const ManagerDashboard = () => {
                         ].map((a, i) => (
                             <div key={i} className="text-xs">
                                 <div className="flex justify-between font-semibold mb-1.5">
-                                    <span className="text-gray-700 dark:text-gray-300">{a.name}</span>
-                                    <span className="text-gray-400 dark:text-gray-500">{a.count}</span>
+                                    <span className="text-gray-700">{a.name}</span>
+                                    <span className="text-gray-400">{a.count}</span>
                                 </div>
-                                <div className="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                                     <div className={`h-full ${a.color} rounded-full`} style={{ width: a.width }} />
                                 </div>
                             </div>
@@ -57,12 +57,12 @@ export const ManagerDashboard = () => {
                 columns={['Incident Identifier', 'Assigned Specialist', 'Severity Level', 'Workflow Status', 'SLA Clock']}
                 data={operationsQueueData}
                 renderRow={(row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-gray-900 dark:text-gray-200">{row.incident}</td>
-                        <td className="px-6 py-4 text-xs font-semibold text-gray-700 dark:text-gray-300">{row.analyst}</td>
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-gray-900">{row.incident}</td>
+                        <td className="px-6 py-4 text-xs font-semibold text-gray-700">{row.analyst}</td>
                         <td className="px-6 py-4"><StatusBadge value={row.priority} /></td>
                         <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
-                        <td className="px-6 py-4 font-mono text-xs text-red-600 dark:text-red-400 font-bold">{row.sla}</td>
+                        <td className="px-6 py-4 font-mono text-xs text-red-600 font-bold">{row.sla}</td>
                     </tr>
                 )}
             />

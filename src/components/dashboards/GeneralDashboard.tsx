@@ -8,14 +8,12 @@ export const GeneralDashboard = () => {
     const data = globalMetrics.general;
     return (
         <div className="space-y-6">
-            {/* KPI Strip */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {Object.values(data).map((kpi, idx) => (
                     <KpiCard key={idx} {...kpi} />
                 ))}
             </div>
 
-            {/* Chart + Performance cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                     <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
@@ -26,7 +24,7 @@ export const GeneralDashboard = () => {
                                         style={{ height: `${val}%` }}
                                         className="w-full bg-gradient-to-t from-[#2563EB] to-[#7C3AED] rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200"
                                     />
-                                    <span className="text-[9px] text-gray-400 dark:text-gray-600 mt-1.5 font-medium">W{i + 1}</span>
+                                    <span className="text-[9px] text-gray-400 mt-1.5 font-medium">W{i + 1}</span>
                                 </div>
                             ))}
                         </div>
@@ -35,14 +33,14 @@ export const GeneralDashboard = () => {
 
                 <div className="grid grid-cols-2 gap-3 content-start">
                     {systemPerformanceMetrics.map((perfKpi, idx) => (
-                        <div key={idx} className="bg-white dark:bg-[#0B0F19] rounded-xl p-4 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between hover:shadow-md dark:hover:border-gray-700 transition-all">
+                        <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
                             <div className="flex justify-between items-start gap-1">
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-tight">{perfKpi.label}</p>
-                                <span className="text-[9px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200/60 dark:border-gray-700/60 flex-shrink-0">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">{perfKpi.label}</p>
+                                <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200/60 flex-shrink-0">
                                     {perfKpi.trend}
                                 </span>
                             </div>
-                            <p className="text-lg font-black text-gray-900 dark:text-white mt-2 tracking-tight">{perfKpi.value}</p>
+                            <p className="text-lg font-black text-gray-900 mt-2 tracking-tight">{perfKpi.value}</p>
                             <div className={`h-0.5 w-8 rounded-full mt-2 ${
                                 perfKpi.type === 'purple' ? 'bg-[#7C3AED]'
                                 : perfKpi.type === 'orange' ? 'bg-[#F59E0B]'
@@ -53,21 +51,20 @@ export const GeneralDashboard = () => {
                 </div>
             </div>
 
-            {/* Threat Distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white dark:bg-[#0B0F19] p-6 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
-                    <h4 className="font-bold text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-5">Threat Vectors Distribution</h4>
+                <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                    <h4 className="font-bold text-[11px] text-gray-400 uppercase tracking-widest mb-5">Threat Vectors Distribution</h4>
                     <div className="space-y-4">
                         {[
-                            { name: 'Malware Activity',         pct: '42%', color: 'bg-[#2563EB]' },
-                            { name: 'Phishing Infrastructure',  pct: '28%', color: 'bg-[#7C3AED]' },
-                            { name: 'Ransomware Probing',       pct: '18%', color: 'bg-[#F59E0B]' },
+                            { name: 'Malware Activity',        pct: '42%', color: 'bg-[#2563EB]' },
+                            { name: 'Phishing Infrastructure', pct: '28%', color: 'bg-[#7C3AED]' },
+                            { name: 'Ransomware Probing',      pct: '18%', color: 'bg-[#F59E0B]' },
                         ].map((t, i) => (
                             <div key={i}>
-                                <div className="flex justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                <div className="flex justify-between text-xs font-semibold text-gray-700 mb-1.5">
                                     <span>{t.name}</span><span>{t.pct}</span>
                                 </div>
-                                <div className="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                                     <div className={`${t.color} h-full rounded-full`} style={{ width: t.pct }} />
                                 </div>
                             </div>
@@ -75,19 +72,19 @@ export const GeneralDashboard = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#0B0F19] p-6 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
-                    <h4 className="font-bold text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-5">Monitored Assets Proportions</h4>
+                <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                    <h4 className="font-bold text-[11px] text-gray-400 uppercase tracking-widest mb-5">Monitored Assets Proportions</h4>
                     <div className="space-y-4">
                         {[
-                            { name: 'Cloud Production Assets',    pct: '50%', color: 'bg-[#7C3AED]' },
-                            { name: 'Enterprise Workstations',    pct: '25%', color: 'bg-[#2563EB]' },
-                            { name: 'On-Prem Infrastructure',     pct: '15%', color: 'bg-[#F59E0B]' },
+                            { name: 'Cloud Production Assets',  pct: '50%', color: 'bg-[#7C3AED]' },
+                            { name: 'Enterprise Workstations',  pct: '25%', color: 'bg-[#2563EB]' },
+                            { name: 'On-Prem Infrastructure',   pct: '15%', color: 'bg-[#F59E0B]' },
                         ].map((a, i) => (
                             <div key={i}>
-                                <div className="flex justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                <div className="flex justify-between text-xs font-semibold text-gray-700 mb-1.5">
                                     <span>{a.name}</span><span>{a.pct}</span>
                                 </div>
-                                <div className="w-full bg-gray-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                                     <div className={`${a.color} h-full rounded-full`} style={{ width: a.pct }} />
                                 </div>
                             </div>
@@ -101,11 +98,11 @@ export const GeneralDashboard = () => {
                 columns={['Time', 'Telemetry Event Details', 'Severity', 'Ingestion Source', 'Status']}
                 data={generalActivityLog}
                 renderRow={(row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-400 dark:text-gray-500">{row.time}</td>
-                        <td className="px-6 py-4 font-semibold text-xs text-gray-800 dark:text-gray-200">{row.event}</td>
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-mono text-xs text-gray-400">{row.time}</td>
+                        <td className="px-6 py-4 font-semibold text-xs text-gray-800">{row.event}</td>
                         <td className="px-6 py-4"><StatusBadge value={row.severity} /></td>
-                        <td className="px-6 py-4 text-xs font-mono text-gray-500 dark:text-gray-400">{row.source}</td>
+                        <td className="px-6 py-4 text-xs font-mono text-gray-500">{row.source}</td>
                         <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
                     </tr>
                 )}
