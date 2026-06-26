@@ -1,4 +1,3 @@
-import React from 'react';
 import { KpiCard } from '../shared/KpiCard';
 import { ChartWrapper } from '../shared/ChartWrapper';
 import { DataTable } from '../shared/DataTable';
@@ -15,14 +14,14 @@ export const ComplianceDashboard = () => {
             </div>
             <DataTable
                 title="Regulatory Compliance Standards Tracking Matrix"
-                columns={["Standard / Framework", "Calculated Coverage Score", "Operational Audit Status", "Last Assessed Execution Date"]}
+                columns={['Standard / Framework', 'Coverage Score', 'Audit Status', 'Last Assessed']}
                 data={complianceFrameworkData}
                 renderRow={(row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-900">{row.standard}</td>
-                        <td className="px-6 py-4 font-mono font-bold text-[#2563EB]">{row.score}</td>
+                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-gray-200">{row.standard}</td>
+                        <td className="px-6 py-4 font-mono font-bold text-[#2563EB] dark:text-blue-400">{row.score}</td>
                         <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">{row.auditDate}</td>
+                        <td className="px-6 py-4 font-mono text-xs text-gray-400 dark:text-gray-500">{row.auditDate}</td>
                     </tr>
                 )}
             />
@@ -39,23 +38,30 @@ export const SoarDashboard = () => {
                 {Object.values(data).map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartWrapper title="Automated Playbook Playback Volumes & Performance Mitigation Trends">
-                    <div className="w-full h-full flex items-end justify-between pt-6 font-mono text-[10px]">
-                        {["Brute Force Isolate", "Phishing Cred Revoke", "Malware Contain", "API Token Cycle"].map((name, idx) => (
-                            <div key={idx} className="flex flex-col items-center w-1/5">
-                                <div className="w-full bg-[#7C3AED] opacity-85 rounded-t" style={{ height: `${85 - (idx * 15)}%` }}></div>
-                                <span className="text-gray-500 mt-2 truncate text-center w-full">{name}</span>
+                <ChartWrapper title="Automated Playbook Playback Volumes & Mitigation Trends">
+                    <div className="w-full h-full flex items-end justify-between gap-4 pt-4">
+                        {['Brute Force Isolate', 'Phishing Cred Revoke', 'Malware Contain', 'API Token Cycle'].map((name, idx) => (
+                            <div key={idx} className="flex flex-col items-center flex-1 h-full group">
+                                <div
+                                    className="w-full bg-gradient-to-t from-[#7C3AED] to-[#A78BFA] rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200"
+                                    style={{ height: `${85 - idx * 15}%` }}
+                                />
+                                <span className="text-[9px] text-gray-400 dark:text-gray-600 mt-2 text-center leading-tight font-medium">{name}</span>
                             </div>
                         ))}
                     </div>
                 </ChartWrapper>
-                <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
-                    <h3 className="font-bold text-sm text-gray-900 uppercase mb-4">SOAR Orchestration Connectors Status</h3>
-                    <div className="space-y-3 text-xs">
-                        {["Wazuh EDR Engine API Proxy", "Office 365 Cloud Directory Service", "Palo Alto NGFW Router Layer"].map((conn, i) => (
-                            <div key={i} className="flex justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                <span className="font-medium text-gray-900">{conn}</span>
-                                <span className="text-emerald-600 font-bold">● Connected Operational</span>
+
+                <div className="bg-white dark:bg-[#0B0F19] p-6 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-gray-700 dark:text-gray-300 text-[11px] tracking-widest uppercase mb-5">SOAR Orchestration Connectors</h3>
+                    <div className="space-y-3">
+                        {['Wazuh EDR Engine API Proxy', 'Office 365 Cloud Directory Service', 'Palo Alto NGFW Router Layer'].map((conn, i) => (
+                            <div key={i} className="flex justify-between items-center p-3.5 bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-gray-800 rounded-xl">
+                                <span className="font-semibold text-xs text-gray-800 dark:text-gray-200">{conn}</span>
+                                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Connected
+                                </span>
                             </div>
                         ))}
                     </div>
@@ -73,20 +79,24 @@ export const ReportingDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.values(data).map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 className="font-bold text-gray-900 text-sm tracking-wide uppercase mb-4">Configured Automated Export Engine</h3>
-                <div className="divide-y divide-gray-100">
+            <div className="bg-white dark:bg-[#0B0F19] rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Configured Automated Export Engine</h3>
+                </div>
+                <div className="divide-y divide-gray-50 dark:divide-gray-800/60">
                     {[
-                        { target: "CISO Executive Overview Report", interval: "Every Monday 06:00 WAT", format: "PDF Architecture Data" },
-                        { target: "CBN Regulatory Cybersecurity Compliance Export", interval: "1st of Every Calendar Month", format: "Signed XLSX Data Matrix" },
-                        { target: "Internal Technical SOC Incident Analysis", interval: "Every 24 Hours Automated", format: "JSON Data Payload Blob" }
+                        { target: 'CISO Executive Overview Report',          interval: 'Every Monday 06:00 WAT',        format: 'PDF Architecture Data' },
+                        { target: 'CBN Regulatory Cybersecurity Compliance', interval: '1st of Every Calendar Month',  format: 'Signed XLSX Matrix' },
+                        { target: 'Internal Technical SOC Incident Analysis',interval: 'Every 24 Hours Automated',      format: 'JSON Payload Blob' },
                     ].map((report, i) => (
-                        <div key={i} className="py-3 flex flex-col md:flex-row justify-between items-start md:items-center text-xs">
+                        <div key={i} className="px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                             <div>
-                                <p className="font-bold text-gray-900">{report.target}</p>
-                                <p className="text-gray-500 mt-0.5">Recurrence Timeline: {report.interval}</p>
+                                <p className="font-bold text-xs text-gray-900 dark:text-gray-200">{report.target}</p>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{report.interval}</p>
                             </div>
-                            <span className="mt-2 md:mt-0 px-2 py-1 bg-gray-100 text-gray-700 font-mono rounded border border-gray-200">{report.format}</span>
+                            <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-mono text-[10px] rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                {report.format}
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -105,14 +115,14 @@ export const CustomerDashboard = () => {
             </div>
             <DataTable
                 title="MSSP Tenant Operational Health Matrices"
-                columns={["Corporate Customer Organization", "Monitored Telemetry Surface", "Active Critical Incidents", "Calculated Risk Score Index", "Service Lifecycle Node"]}
+                columns={['Customer Organization', 'Telemetry Surface', 'Critical Incidents', 'Risk Score', 'Service Node']}
                 data={msspTenantData}
                 renderRow={(row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-900">{row.company}</td>
-                        <td className="px-6 py-4 text-xs font-medium text-gray-600">{row.infrastructure}</td>
-                        <td className="px-6 py-4 font-mono text-xs font-bold text-red-600">{row.criticals}</td>
-                        <td className="px-6 py-4 font-mono font-bold">{row.health}</td>
+                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-gray-200 text-sm">{row.company}</td>
+                        <td className="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-400">{row.infrastructure}</td>
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-red-600 dark:text-red-400">{row.criticals}</td>
+                        <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-gray-200">{row.health}</td>
                         <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
                     </tr>
                 )}
@@ -121,7 +131,7 @@ export const CustomerDashboard = () => {
     );
 };
 
-// 5. NovrAI Command Center (Flagship AI Capability Layout)
+// 5. NovrAI Command Center
 export const NovrAiCommandCenter = () => {
     const data = extendedPlatformMetrics.novrai;
     return (
@@ -130,29 +140,31 @@ export const NovrAiCommandCenter = () => {
                 {Object.values(data).map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            {/* Flagship Interface Feature: Natural Language Security Prompt Parsing Engine */}
-            <div className="bg-gradient-to-br from-white to-blue-50/20 border border-blue-200 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center space-x-2 text-[#7C3AED] font-bold text-xs uppercase tracking-widest mb-3">
-                    <span>⚡ NovrAI Cognitive Translation Engine</span>
+            <div className="bg-gradient-to-br from-white dark:from-[#0B0F19] to-blue-50/30 dark:to-blue-950/10 border border-blue-200 dark:border-blue-900/40 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[#7C3AED] dark:text-purple-400 text-xs font-black uppercase tracking-widest">⚡ NovrAI Cognitive Translation Engine</span>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 tracking-tight">Natural Language Tactical Security Query</h3>
-                <p className="text-xs text-gray-500 mt-1 mb-4">Interrogate your cross-platform Wazuh, cloud infrastructure, and network data metrics cleanly without coding complex SQL or Lucene schema strings.</p>
+                <h3 className="text-base font-black text-gray-900 dark:text-gray-100 tracking-tight">Natural Language Tactical Security Query</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-5">
+                    Interrogate your cross-platform Wazuh, cloud infrastructure, and network data without writing SQL or Lucene queries.
+                </p>
 
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-inner">
-                    <p className="text-xs font-mono font-medium text-gray-400 mb-1">// Active Operational Core Request Example Input</p>
-                    <p className="text-sm font-semibold text-gray-800 bg-gray-50 px-3 py-2.5 rounded border border-gray-100">
+                <div className="bg-white dark:bg-[#111827] border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-inner">
+                    <p className="text-[10px] font-mono font-bold text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-wider">// Active Request Input</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-[#0B0F19] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
                         "Show me all critical phishing incidents affecting financial-sector customers during the last 30 days."
                     </p>
 
-                    <div className="mt-4 border-t border-gray-100 pt-4 space-y-3">
-                        <div className="flex items-center space-x-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded w-max">
-                            <span>✔ NovrAI System Synthesis Generation Completed</span>
+                    <div className="mt-5 border-t border-gray-100 dark:border-gray-700 pt-5 space-y-3">
+                        <div className="inline-flex items-center gap-2 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 px-3 py-1.5 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            NovrAI Synthesis Completed
                         </div>
 
-                        <div className="text-xs space-y-2.5 mt-2">
-                            <p className="text-gray-700"><strong>Summary:</strong> Threat matching maps 3 inbound high-impact campaigns originating from systemic spear phishing deployments targeting infrastructure components.</p>
-                            <p className="text-gray-700"><strong>Risk Evaluation & Business Impact Analysis:</strong> Assessed at Medium-Critical. Threat surface points to local workstation vectors, isolated by automated tenant policy overrides before credential theft completion.</p>
-                            <p className="text-gray-700"><strong>System Recommended Actions:</strong> Push DMARC enforcing profiles across monitored tenant scopes, run targeted email header trace arrays via NovrSOC core automation pipelines immediately.</p>
+                        <div className="text-xs space-y-2.5 text-gray-700 dark:text-gray-300">
+                            <p><strong className="text-gray-900 dark:text-gray-100">Summary:</strong> 3 inbound high-impact campaigns from spear phishing deployments targeting infrastructure components.</p>
+                            <p><strong className="text-gray-900 dark:text-gray-100">Risk Evaluation:</strong> Medium-Critical. Threat surface isolated by automated tenant policy overrides before credential theft.</p>
+                            <p><strong className="text-gray-900 dark:text-gray-100">Recommended Actions:</strong> Push DMARC enforcing profiles across monitored tenant scopes, run email header trace via NovrSOC pipelines.</p>
                         </div>
                     </div>
                 </div>

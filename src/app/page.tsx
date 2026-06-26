@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { DashboardSelector } from '@/components/layout/DashboardSelector';
-import { RightRail } from '@/components/layout/RightRail';
+import { InfoCards } from '@/components/layout/RightRail';
 
 import { GeneralDashboard } from '@/components/dashboards/GeneralDashboard';
 import { ExecutiveDashboard } from '@/components/dashboards/ExecutiveDashboard';
@@ -20,10 +20,9 @@ import {
 } from '@/components/dashboards/PlatformDashboards';
 
 export default function Home() {
-  const [activeDashboard, setActiveDashboard] = useState<string>("General");
+  const [activeDashboard, setActiveDashboard] = useState<string>('General');
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  // Toggle utility hook mapping dark class directives directly onto document HTML element nodes
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -34,16 +33,16 @@ export default function Home() {
 
   const renderDashboard = () => {
     switch (activeDashboard) {
-      case "General": return <GeneralDashboard />;
-      case "Executive": return <ExecutiveDashboard />;
-      case "SOC Manager": return <ManagerDashboard />;
-      case "SOC Analyst": return <AnalystDashboard />;
-      case "Compliance": return <ComplianceDashboard />;
-      case "SOAR Platform": return <SoarDashboard />;
-      case "Reporting Center": return <ReportingDashboard />;
-      case "Customer Multi-Tenant": return <CustomerDashboard />;
-      case "NovrAI Command Center": return <NovrAiCommandCenter />;
-      default: return <GeneralDashboard />;
+      case 'General':                 return <GeneralDashboard />;
+      case 'Executive':               return <ExecutiveDashboard />;
+      case 'SOC Manager':             return <ManagerDashboard />;
+      case 'SOC Analyst':             return <AnalystDashboard />;
+      case 'Compliance':              return <ComplianceDashboard />;
+      case 'SOAR Platform':           return <SoarDashboard />;
+      case 'Reporting Center':        return <ReportingDashboard />;
+      case 'Customer Multi-Tenant':   return <CustomerDashboard />;
+      case 'NovrAI Command Center':   return <NovrAiCommandCenter />;
+      default:                        return <GeneralDashboard />;
     }
   };
 
@@ -52,28 +51,18 @@ export default function Home() {
       <Sidebar />
 
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Header containing theme toggle button */}
-        <div className="relative">
-          <Header currentDashboard={activeDashboard} />
-          {/* Absolute floating interactive theme toggle trigger action anchor right next to cloud node indicators */}
-          <div className="absolute right-48 top-[18px] z-30">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0B0F19] text-xs font-bold text-gray-600 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              {darkMode ? '☀️ Light View' : '🌙 Corporate Dark'}
-            </button>
-          </div>
-        </div>
-
+        <Header
+          currentDashboard={activeDashboard}
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode(!darkMode)}
+        />
         <DashboardSelector value={activeDashboard} onChange={setActiveDashboard} />
 
         <div className="p-8 flex-1 overflow-y-auto">
           {renderDashboard()}
+          <InfoCards />
         </div>
       </div>
-
-      <RightRail />
     </div>
   );
 }
