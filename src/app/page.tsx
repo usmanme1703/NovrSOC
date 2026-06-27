@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { DashboardSelector } from '@/components/layout/DashboardSelector';
+import { RightRail } from '@/components/layout/RightRail';
 
 import { GeneralDashboard } from '@/components/dashboards/GeneralDashboard';
 import { ExecutiveDashboard } from '@/components/dashboards/ExecutiveDashboard';
@@ -46,6 +47,7 @@ export default function Home() {
           {renderDashboard()}
         </div>
       </div>
+      <RightRail />
     </div>
   );
 }

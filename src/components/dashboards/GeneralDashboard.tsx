@@ -6,12 +6,14 @@ import { globalMetrics, generalActivityLog, systemPerformanceMetrics } from '@/d
 
 export const GeneralDashboard = () => {
     const data = globalMetrics.general;
+    const allCards = [...Object.values(data), ...systemPerformanceMetrics];
+
     return (
         <div className="space-y-6">
 
-            {/* KPI cards — 3 per row, 2 rows */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.values(data).map((kpi, idx) => (
+            {/* 12 KPI cards — 4 per row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {allCards.map((kpi, idx) => (
                     <KpiCard key={idx} {...kpi} />
                 ))}
             </div>
@@ -30,26 +32,6 @@ export const GeneralDashboard = () => {
                     ))}
                 </div>
             </ChartWrapper>
-
-            {/* Performance sub-cards — full width below chart */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {systemPerformanceMetrics.map((perfKpi, idx) => (
-                    <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start gap-1">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">{perfKpi.label}</p>
-                            <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200/60 flex-shrink-0">
-                                {perfKpi.trend}
-                            </span>
-                        </div>
-                        <p className="text-lg font-black text-gray-900 mt-2 tracking-tight">{perfKpi.value}</p>
-                        <div className={`h-0.5 w-8 rounded-full mt-2 ${
-                            perfKpi.type === 'purple' ? 'bg-[#7C3AED]'
-                            : perfKpi.type === 'orange' ? 'bg-[#F59E0B]'
-                            : 'bg-[#2563EB]'
-                        }`} />
-                    </div>
-                ))}
-            </div>
 
             {/* Threat vectors + Assets proportions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

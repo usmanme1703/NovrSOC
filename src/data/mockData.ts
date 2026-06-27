@@ -121,7 +121,7 @@ export const msspTenantData = [
 ];
 
 // Add or replace this array inside src/data/mockData.ts
-export const systemPerformanceMetrics = [
+export const systemPerformanceMetrics: MetricItem[] = [
     { label: "Threats Blocked", value: "12,841", trend: "+18%", type: "orange" },
     { label: "Clients Protected Today", value: "42 Active", trend: "100%", type: "blue" },
     { label: "SIEM Ingestion Rate", value: "4.2k eps", trend: "+12%", type: "purple" },
