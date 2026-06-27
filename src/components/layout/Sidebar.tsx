@@ -42,13 +42,13 @@ const accountRows = [
 ];
 
 const healthRows: { label: string; status?: string; value?: string }[] = [
-    { label: 'Wazuh Manager',  status: 'Healthy' },
-    { label: 'Elastic Cluster',status: 'Healthy' },
-    { label: 'API Gateway',    status: 'Operational' },
-    { label: 'Database',       status: 'Healthy' },
-    { label: 'Collectors',     value: '12 Online' },
-    { label: 'Last Sync',      value: '2 min ago' },
-    { label: 'Version',        value: 'NovrSOC v1.0' },
+    { label: 'Wazuh Manager',   status: 'Healthy' },
+    { label: 'Elastic Cluster', status: 'Healthy' },
+    { label: 'API Gateway',     status: 'Operational' },
+    { label: 'Database',        status: 'Healthy' },
+    { label: 'Collectors',      value: '12 Online' },
+    { label: 'Last Sync',       value: '2 min ago' },
+    { label: 'Version',         value: 'NovrSOC v1.0' },
 ];
 
 const quickActions = [
@@ -62,15 +62,13 @@ const quickActions = [
 ];
 
 function statusColor(status?: string) {
-    if (!status) return '';
-    if (['Healthy', 'Operational'].includes(status)) return 'text-emerald-600';
+    if (['Healthy', 'Operational'].includes(status ?? '')) return 'text-emerald-600';
     if (status === 'Warning') return 'text-amber-600';
     return 'text-red-600';
 }
 
 function statusDot(status?: string) {
-    if (!status) return 'bg-gray-300';
-    if (['Healthy', 'Operational'].includes(status)) return 'bg-emerald-500';
+    if (['Healthy', 'Operational'].includes(status ?? '')) return 'bg-emerald-500';
     if (status === 'Warning') return 'bg-amber-500';
     return 'bg-red-500';
 }
@@ -87,18 +85,22 @@ export const Sidebar = () => {
 
             {/* Brand */}
             <div className="h-[72px] border-b border-gray-200 px-5 flex items-center justify-between flex-shrink-0">
-                <div className="relative h-7 w-28">
-                    <Image src="/novrsoc.png" alt="NOVRSOC" fill priority className="object-contain object-left" />
+                <div className="flex items-center gap-2.5">
+                    <div className="relative h-7 w-7 flex-shrink-0">
+                        <Image src="/cybernovr.png" alt="CyberNovr" fill priority className="object-contain" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black text-gray-900 leading-none tracking-tight">NovrSOC</p>
+                        <p className="text-[10px] font-medium text-gray-400 leading-tight mt-0.5">by CyberNovr</p>
+                    </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-blue-600 text-white rounded-md border border-blue-700">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-blue-600 text-white rounded-md border border-blue-700 flex-shrink-0">
                     MSSP
                 </span>
             </div>
 
-            {/* Scrollable body: nav + info cards */}
-            <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin space-y-1.5">
-
-                {/* Feature navigation */}
+            {/* Scrollable nav */}
+            <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin space-y-1.5 min-h-0">
                 {featureNavigation.map((navGroup) => {
                     const isOpen = openGroup === navGroup.group;
                     return (
@@ -132,12 +134,10 @@ export const Sidebar = () => {
                         </div>
                     );
                 })}
+            </nav>
 
-                {/* Section divider */}
-                <div className="pt-3 pb-1">
-                    <div className="h-px bg-gray-100" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-300 mt-3 mb-1 px-1">Workspace</p>
-                </div>
+            {/* Fixed workspace cards panel */}
+            <div className="border-t border-gray-200 overflow-y-auto max-h-[300px] scrollbar-thin p-3 space-y-2 flex-shrink-0">
 
                 {/* Card 1 — Account Overview */}
                 <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -222,10 +222,7 @@ export const Sidebar = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* Bottom breathing room */}
-                <div className="h-2" />
-            </nav>
+            </div>
 
             {/* Footer */}
             <div className="p-3 border-t border-gray-100 flex-shrink-0">

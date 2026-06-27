@@ -8,49 +8,50 @@ export const GeneralDashboard = () => {
     const data = globalMetrics.general;
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+
+            {/* KPI cards — 3 per row, 2 rows */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {Object.values(data).map((kpi, idx) => (
                     <KpiCard key={idx} {...kpi} />
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
-                        <div className="w-full h-full flex items-end gap-2 pt-4">
-                            {[40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center group">
-                                    <div
-                                        style={{ height: `${val}%` }}
-                                        className="w-full bg-gradient-to-t from-[#2563EB] to-[#7C3AED] rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200"
-                                    />
-                                    <span className="text-[9px] text-gray-400 mt-1.5 font-medium">W{i + 1}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </ChartWrapper>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 content-start">
-                    {systemPerformanceMetrics.map((perfKpi, idx) => (
-                        <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-                            <div className="flex justify-between items-start gap-1">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">{perfKpi.label}</p>
-                                <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200/60 flex-shrink-0">
-                                    {perfKpi.trend}
-                                </span>
-                            </div>
-                            <p className="text-lg font-black text-gray-900 mt-2 tracking-tight">{perfKpi.value}</p>
-                            <div className={`h-0.5 w-8 rounded-full mt-2 ${
-                                perfKpi.type === 'purple' ? 'bg-[#7C3AED]'
-                                : perfKpi.type === 'orange' ? 'bg-[#F59E0B]'
-                                : 'bg-[#2563EB]'
-                            }`} />
+            {/* Bar chart — full width below KPIs */}
+            <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
+                <div className="w-full h-full flex items-end gap-2 pt-4">
+                    {[40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center group">
+                            <div
+                                style={{ height: `${val}%` }}
+                                className="w-full bg-gradient-to-t from-[#2563EB] to-[#7C3AED] rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200"
+                            />
+                            <span className="text-[9px] text-gray-400 mt-1.5 font-medium">W{i + 1}</span>
                         </div>
                     ))}
                 </div>
+            </ChartWrapper>
+
+            {/* Performance sub-cards — full width below chart */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {systemPerformanceMetrics.map((perfKpi, idx) => (
+                    <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+                        <div className="flex justify-between items-start gap-1">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">{perfKpi.label}</p>
+                            <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200/60 flex-shrink-0">
+                                {perfKpi.trend}
+                            </span>
+                        </div>
+                        <p className="text-lg font-black text-gray-900 mt-2 tracking-tight">{perfKpi.value}</p>
+                        <div className={`h-0.5 w-8 rounded-full mt-2 ${
+                            perfKpi.type === 'purple' ? 'bg-[#7C3AED]'
+                            : perfKpi.type === 'orange' ? 'bg-[#F59E0B]'
+                            : 'bg-[#2563EB]'
+                        }`} />
+                    </div>
+                ))}
             </div>
 
+            {/* Threat vectors + Assets proportions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
                     <h4 className="font-bold text-[11px] text-gray-400 uppercase tracking-widest mb-5">Threat Vectors Distribution</h4>
@@ -76,9 +77,9 @@ export const GeneralDashboard = () => {
                     <h4 className="font-bold text-[11px] text-gray-400 uppercase tracking-widest mb-5">Monitored Assets Proportions</h4>
                     <div className="space-y-4">
                         {[
-                            { name: 'Cloud Production Assets',  pct: '50%', color: 'bg-[#7C3AED]' },
-                            { name: 'Enterprise Workstations',  pct: '25%', color: 'bg-[#2563EB]' },
-                            { name: 'On-Prem Infrastructure',   pct: '15%', color: 'bg-[#F59E0B]' },
+                            { name: 'Cloud Production Assets', pct: '50%', color: 'bg-[#7C3AED]' },
+                            { name: 'Enterprise Workstations', pct: '25%', color: 'bg-[#2563EB]' },
+                            { name: 'On-Prem Infrastructure',  pct: '15%', color: 'bg-[#F59E0B]' },
                         ].map((a, i) => (
                             <div key={i}>
                                 <div className="flex justify-between text-xs font-semibold text-gray-700 mb-1.5">
