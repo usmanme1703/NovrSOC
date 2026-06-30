@@ -125,7 +125,5 @@ export const systemPerformanceMetrics: MetricItem[] = [
     { label: "Threats Blocked", value: "12,841", trend: "+18%", type: "orange" },
     { label: "Clients Protected Today", value: "42 Active", trend: "100%", type: "blue" },
     { label: "SIEM Ingestion Rate", value: "4.2k eps", trend: "+12%", type: "purple" },
-    { label: "SOAR Engine Load", value: "8.4%", trend: "Stable", type: "blue" },
     { label: "Wazuh Agent Syncs", value: "1,418/1,420", trend: "99.8%", type: "blue" },
-    { label: "API Gateway Latency", value: "14ms", trend: "Nominal", type: "blue" }
 ];
