@@ -9,7 +9,7 @@ interface PageLayoutProps {
 }
 
 export const PageLayout = ({ title, children }: PageLayoutProps) => (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] text-gray-900 dark:text-slate-100 flex font-sans antialiased">
+    <div className="min-h-screen bg-[#f1f5f9] text-slate-900 flex font-sans antialiased">
         <Sidebar />
         <div className="flex-1 min-w-0 flex flex-col">
             <Header currentDashboard={title} />

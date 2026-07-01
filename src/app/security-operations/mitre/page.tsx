@@ -81,10 +81,10 @@ const TECHNIQUES: Record<string, { id: string; name: string; alerts: number; las
 };
 
 const cellColor = (alerts: number) => {
-    if (alerts === 0) return 'bg-gray-50 dark:bg-slate-800/40 text-gray-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-700/40';
-    if (alerts >= 10) return 'bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-200 dark:border-red-700/40 hover:bg-red-100 dark:hover:bg-red-900/30';
-    if (alerts >= 3) return 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 border border-orange-200 dark:border-orange-700/40 hover:bg-orange-100 dark:hover:bg-orange-900/30';
-    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border border-amber-200 dark:border-amber-700/40 hover:bg-amber-100 dark:hover:bg-amber-900/30';
+    if (alerts === 0) return 'bg-gray-50 text-gray-400 hover:bg-gray-100';
+    if (alerts >= 10) return 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100';
+    if (alerts >= 3) return 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100';
+    return 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100';
 };
 
 interface Tech { id: string; name: string; alerts: number; lastSeen: string; incidents: string[] }
@@ -97,17 +97,17 @@ export default function MitrePage() {
             <div className="space-y-5">
                 <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-lg font-black text-gray-900 dark:text-slate-100">MITRE ATT&CK Matrix</h1>
-                        <p className="text-xs text-gray-400 dark:text-slate-400">Security Operations · 23 techniques detected this week across 8 tactics</p>
+                        <h1 className="text-lg font-black text-gray-900">MITRE ATT&CK Matrix</h1>
+                        <p className="text-xs text-gray-400">Security Operations · 23 techniques detected this week across 8 tactics</p>
                     </div>
-                    <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-100 hover:border-gray-400 dark:hover:border-slate-400 transition-colors">
+                    <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-800 hover:border-gray-400 transition-colors">
                         📄 Export PDF
                     </button>
                 </div>
 
                 {/* Legend */}
                 <div className="flex items-center gap-4">
-                    {[['#f3f4f6', 'Not Detected', 'dark:text-slate-500'], ['#78350f', 'Low (1-2)', 'text-amber-600'], ['#c2410c', 'Medium (3-9)', 'text-orange-600'], ['#991b1b', 'High (10+)', 'text-red-600']].map(([c, l, tc]) => (
+                    {[['#f3f4f6', 'Not Detected', 'text-slate-500'], ['#78350f', 'Low (1-2)', 'text-amber-600'], ['#c2410c', 'Medium (3-9)', 'text-orange-600'], ['#991b1b', 'High (10+)', 'text-red-600']].map(([c, l, tc]) => (
                         <div key={l} className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded" style={{ backgroundColor: c }} />
                             <span className={`text-[10px] text-gray-500 ${tc}`}>{l}</span>
@@ -116,25 +116,25 @@ export default function MitrePage() {
                 </div>
 
                 {/* Matrix */}
-                <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                     <div className="overflow-x-auto p-3">
                         <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${TACTICS.length}, minmax(100px, 1fr))` }}>
                             {/* Headers */}
                             {TACTICS.map(t => (
-                                <div key={t} className="px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 rounded text-center">
-                                    <p className="text-[9px] font-black text-blue-700 dark:text-blue-400 leading-tight">{t}</p>
+                                <div key={t} className="px-2 py-1.5 bg-blue-50 border border-blue-200 rounded text-center">
+                                    <p className="text-[9px] font-black text-blue-700 leading-tight">{t}</p>
                                 </div>
                             ))}
                             {/* Cells */}
                             {[0, 1, 2, 3].map(row => (
                                 TACTICS.map(tactic => {
                                     const tech = TECHNIQUES[tactic]?.[row];
-                                    if (!tech) return <div key={`${tactic}-${row}`} className="h-12 rounded bg-gray-100 dark:bg-slate-800/40" />;
+                                    if (!tech) return <div key={`${tactic}-${row}`} className="h-12 rounded bg-gray-100" />;
                                     return (
                                         <button key={tech.id} onClick={() => setSelected(selected?.id === tech.id ? null : tech)}
-                                            className={`p-1.5 rounded text-left transition-all ${cellColor(tech.alerts)} ${selected?.id === tech.id ? 'ring-2 ring-blue-700 dark:ring-blue-400' : ''}`}>
-                                            <p className="text-[8px] font-mono text-gray-400 dark:text-slate-500">{tech.id}</p>
+                                            className={`p-1.5 rounded text-left transition-all ${cellColor(tech.alerts)} ${selected?.id === tech.id ? 'ring-2 ring-blue-700' : ''}`}>
+                                            <p className="text-[8px] font-mono text-gray-400">{tech.id}</p>
                                             <p className="text-[9px] font-bold leading-tight mt-0.5">{tech.name}</p>
                                             {tech.alerts > 0 && <p className="text-[8px] mt-0.5 opacity-80">{tech.alerts} alerts</p>}
                                         </button>
@@ -147,27 +147,27 @@ export default function MitrePage() {
 
                 {/* Side panel */}
                 {selected && (
-                    <div className="bg-white dark:bg-[#1e293b] border border-blue-200 dark:border-blue-700/40 rounded-xl overflow-hidden">
+                    <div className="bg-white border border-blue-200 rounded-xl overflow-hidden">
                         <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                         <div className="p-4 grid grid-cols-3 gap-4">
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Technique</p>
-                                <p className="font-mono text-blue-700 dark:text-blue-400 font-bold text-sm">{selected.id}</p>
-                                <p className="text-sm font-bold text-gray-800 dark:text-slate-100 mt-1">{selected.name}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Technique</p>
+                                <p className="font-mono text-blue-700 font-bold text-sm">{selected.id}</p>
+                                <p className="text-sm font-bold text-gray-800 mt-1">{selected.name}</p>
                                 <div className="mt-3 space-y-1">
-                                    <div className="flex gap-2 text-xs"><span className="text-gray-400 dark:text-slate-500">Alerts this week:</span><span className="font-bold text-gray-800 dark:text-slate-100">{selected.alerts}</span></div>
-                                    <div className="flex gap-2 text-xs"><span className="text-gray-400 dark:text-slate-500">Last triggered:</span><span className="font-bold text-gray-800 dark:text-slate-100">{selected.lastSeen}</span></div>
+                                    <div className="flex gap-2 text-xs"><span className="text-gray-400">Alerts this week:</span><span className="font-bold text-gray-800">{selected.alerts}</span></div>
+                                    <div className="flex gap-2 text-xs"><span className="text-gray-400">Last triggered:</span><span className="font-bold text-gray-800">{selected.lastSeen}</span></div>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Linked Incidents</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Linked Incidents</p>
                                 {selected.incidents.length ? selected.incidents.map(inc => (
-                                    <div key={inc} className="text-xs text-blue-700 dark:text-blue-400 hover:underline cursor-pointer">{inc}</div>
-                                )) : <p className="text-xs text-gray-400 dark:text-slate-500">None this week</p>}
+                                    <div key={inc} className="text-xs text-blue-700 hover:underline cursor-pointer">{inc}</div>
+                                )) : <p className="text-xs text-gray-400">None this week</p>}
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">Suggested Response</p>
-                                <ul className="space-y-1 text-xs text-gray-700 dark:text-slate-200">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Suggested Response</p>
+                                <ul className="space-y-1 text-xs text-gray-700">
                                     <li>• Review detection rules for {selected.id}</li>
                                     <li>• Cross-reference with MISP threat feeds</li>
                                     <li>• Check affected assets for lateral movement</li>

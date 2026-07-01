@@ -107,21 +107,21 @@ export const Sidebar = () => {
     const [openGroup, setOpenGroup] = useState<string | null>(defaultOpen);
 
     return (
-        <aside className="w-[280px] bg-white dark:bg-[#0f172a] border-r border-gray-200 dark:border-slate-800 h-screen sticky top-0 flex flex-col z-30 select-none flex-shrink-0">
+        <aside className="w-[280px] bg-[#f8fafc] border-r border-slate-200 h-screen sticky top-0 flex flex-col z-30 select-none flex-shrink-0">
 
             {/* Brand */}
-            <div className="h-[64px] border-b border-gray-200 dark:border-slate-800 px-4 flex items-center gap-3 flex-shrink-0">
+            <div className="h-[64px] border-b border-slate-200 px-4 flex items-center gap-3 flex-shrink-0">
                 <ShieldLogo />
                 <div className="min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                        <p className="text-sm font-black leading-none tracking-tight bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 bg-clip-text text-transparent">
+                        <p className="text-sm font-black leading-none tracking-tight text-[#1d4ed8]">
                             NovrSOC
                         </p>
-                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-700 text-white rounded leading-none flex-shrink-0">
+                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
                             MSSP
                         </span>
                     </div>
-                    <p className="text-[10px] font-medium text-gray-400 dark:text-slate-500 mt-0.5 leading-none">by CyberNovr</p>
+                    <p className="text-[10px] font-medium text-[#7c3aed] mt-0.5 leading-none">by CyberNovr</p>
                 </div>
             </div>
 
@@ -138,18 +138,18 @@ export const Sidebar = () => {
                                 onClick={() => setOpenGroup(isOpen ? null : navGroup.group)}
                                 className={`w-full px-3 py-2 flex items-center justify-between text-left rounded-lg transition-colors duration-150 ${
                                     isOpen || isActive
-                                        ? 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100'
-                                        : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/60 hover:text-gray-700 dark:hover:text-slate-200'
+                                        ? 'bg-slate-100 text-slate-900'
+                                        : 'text-slate-500 hover:bg-[#eff6ff] hover:text-slate-700'
                                 }`}
                             >
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm leading-none">{navGroup.icon}</span>
                                     <span className="text-[11px] font-bold tracking-wide">{navGroup.group}</span>
                                 </div>
-                                <span className={`text-[9px] text-gray-400 dark:text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                                <span className={`text-[9px] text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
                             </button>
                             {isOpen && (
-                                <div className="ml-2 mt-0.5 mb-1 border-l border-gray-200 dark:border-slate-700 pl-3 space-y-0.5">
+                                <div className="ml-2 mt-0.5 mb-1 border-l border-slate-200 pl-3 space-y-0.5">
                                     {navGroup.items.map((item) => {
                                         const active = item.href === '/' ? pathname === '/' : pathname === item.href;
                                         return (
@@ -158,8 +158,8 @@ export const Sidebar = () => {
                                                 href={item.href}
                                                 className={`block px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
                                                     active
-                                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700/40'
-                                                        : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800/60 hover:text-gray-700 dark:hover:text-slate-200'
+                                                        ? 'bg-[#1d4ed8] text-white'
+                                                        : 'text-slate-500 hover:bg-[#eff6ff] hover:text-slate-700'
                                                 }`}
                                             >
                                                 {item.label}
@@ -174,13 +174,13 @@ export const Sidebar = () => {
             </nav>
 
             {/* Footer */}
-            <div className="p-2 border-t border-gray-200 dark:border-slate-800 flex-shrink-0">
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-lg">
+            <div className="p-2 border-t border-slate-200 flex-shrink-0">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg">
                     <span className="relative flex h-2 w-2 flex-shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                     </span>
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-slate-400 tracking-wide">Telemetry Online</p>
+                    <p className="text-[10px] font-bold text-slate-500 tracking-wide">Telemetry Online</p>
                 </div>
             </div>
         </aside>

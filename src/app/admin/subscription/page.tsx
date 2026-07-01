@@ -71,7 +71,7 @@ const FEATURE_KEYS = [
 ];
 
 const colorMap: Record<string, string> = {
-    gray: 'border-gray-300 dark:border-gray-600',
+    gray: 'border-gray-300',
     blue: 'border-blue-500',
     violet: 'border-violet-500',
     amber: 'border-amber-500',
@@ -87,8 +87,8 @@ const accentMap: Record<string, string> = {
 
 const FeatureValue = ({ val }: { val: boolean | string }) => {
     if (val === true) return <span className="text-emerald-600 font-bold text-sm">✓</span>;
-    if (val === false) return <span className="text-gray-300 dark:text-slate-600 text-sm">—</span>;
-    return <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">{val}</span>;
+    if (val === false) return <span className="text-gray-300 text-sm">—</span>;
+    return <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">{val}</span>;
 };
 
 export default function SubscriptionPage() {
@@ -106,19 +106,19 @@ export default function SubscriptionPage() {
             <div className="space-y-6">
                 <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-lg font-black text-gray-900 dark:text-slate-100">Subscription Plans</h1>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">Administration · Manage your NovrSOC subscription and billing</p>
+                        <h1 className="text-lg font-black text-gray-900">Subscription Plans</h1>
+                        <p className="text-xs text-gray-500">Administration · Manage your NovrSOC subscription and billing</p>
                     </div>
                     {/* Annual toggle */}
-                    <div className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl px-4 py-2">
-                        <span className={`text-xs font-bold ${!annual ? 'text-gray-900 dark:text-slate-100' : 'text-gray-400 dark:text-slate-500'}`}>Monthly</span>
+                    <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2">
+                        <span className={`text-xs font-bold ${!annual ? 'text-gray-900' : 'text-gray-400'}`}>Monthly</span>
                         <button
                             onClick={() => setAnnual(a => !a)}
-                            className={`relative w-10 h-5 rounded-full transition-colors ${annual ? 'bg-blue-700' : 'bg-gray-200 dark:bg-slate-600'}`}
+                            className={`relative w-10 h-5 rounded-full transition-colors ${annual ? 'bg-blue-700' : 'bg-gray-200'}`}
                         >
                             <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${annual ? 'translate-x-5' : ''}`} />
                         </button>
-                        <span className={`text-xs font-bold ${annual ? 'text-gray-900 dark:text-slate-100' : 'text-gray-400 dark:text-slate-500'}`}>
+                        <span className={`text-xs font-bold ${annual ? 'text-gray-900' : 'text-gray-400'}`}>
                             Annual <span className="text-emerald-600 font-black">−20%</span>
                         </span>
                     </div>
@@ -129,7 +129,7 @@ export default function SubscriptionPage() {
                     {PLANS.map(plan => {
                         const isCurrent = plan.name === CURRENT_PLAN;
                         return (
-                            <div key={plan.name} className={`relative bg-white dark:bg-[#1e293b] rounded-2xl border-2 overflow-hidden flex flex-col ${isCurrent ? 'border-blue-700 shadow-lg shadow-blue-700/10' : colorMap[plan.color]}`}>
+                            <div key={plan.name} className={`relative bg-white rounded-2xl border-2 overflow-hidden flex flex-col ${isCurrent ? 'border-blue-700 shadow-lg shadow-blue-700/10' : colorMap[plan.color]}`}>
                                 {plan.popular && (
                                     <div className="bg-gradient-to-r from-violet-600 to-violet-700 text-white text-[9px] font-black text-center py-1 tracking-widest uppercase">Most Popular</div>
                                 )}
@@ -138,30 +138,30 @@ export default function SubscriptionPage() {
                                 )}
                                 <div className={`h-1 bg-gradient-to-r ${accentMap[plan.color]}`} />
                                 <div className="p-4 flex flex-col flex-1">
-                                    <p className="text-sm font-black text-gray-900 dark:text-slate-100">{plan.name}</p>
-                                    <p className="text-xl font-black text-gray-900 dark:text-slate-100 mt-1 mb-3">{price(plan.price)}</p>
+                                    <p className="text-sm font-black text-gray-900">{plan.name}</p>
+                                    <p className="text-xl font-black text-gray-900 mt-1 mb-3">{price(plan.price)}</p>
 
                                     <div className="space-y-1 mb-4 flex-1">
                                         <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-500 dark:text-slate-400">Endpoints</span>
-                                            <span className="font-bold text-gray-700 dark:text-slate-200">{plan.limits.endpoints}</span>
+                                            <span className="text-gray-500">Endpoints</span>
+                                            <span className="font-bold text-gray-700">{plan.limits.endpoints}</span>
                                         </div>
                                         <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-500 dark:text-slate-400">Clients</span>
-                                            <span className="font-bold text-gray-700 dark:text-slate-200">{plan.limits.clients}</span>
+                                            <span className="text-gray-500">Clients</span>
+                                            <span className="font-bold text-gray-700">{plan.limits.clients}</span>
                                         </div>
                                         <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-500 dark:text-slate-400">SLA</span>
-                                            <span className="font-bold text-gray-700 dark:text-slate-200">{plan.limits.sla}</span>
+                                            <span className="text-gray-500">SLA</span>
+                                            <span className="font-bold text-gray-700">{plan.limits.sla}</span>
                                         </div>
                                         <div className="flex justify-between text-[10px]">
-                                            <span className="text-gray-500 dark:text-slate-400">Support</span>
-                                            <span className="font-bold text-gray-700 dark:text-slate-200">{plan.limits.support}</span>
+                                            <span className="text-gray-500">Support</span>
+                                            <span className="font-bold text-gray-700">{plan.limits.support}</span>
                                         </div>
                                     </div>
 
                                     {isCurrent ? (
-                                        <div className="w-full py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 text-blue-700 dark:text-blue-400 text-[10px] font-black text-center rounded-lg">
+                                        <div className="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black text-center rounded-lg">
                                             ✓ Current Plan
                                         </div>
                                     ) : plan.name === 'Platinum' ? (
@@ -180,25 +180,25 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* Feature comparison table */}
-                <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                     <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
-                    <div className="p-4 border-b border-gray-100 dark:border-slate-700">
-                        <p className="text-xs font-black text-gray-800 dark:text-slate-100">Feature Comparison</p>
+                    <div className="p-4 border-b border-gray-100">
+                        <p className="text-xs font-black text-gray-800">Feature Comparison</p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="border-b border-gray-100 dark:border-slate-700">
-                                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider w-48">Feature</th>
+                                <tr className="border-b border-gray-100">
+                                    <th className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-48">Feature</th>
                                     {PLANS.map(p => (
-                                        <th key={p.name} className={`px-4 py-3 text-center text-[10px] font-black uppercase tracking-wider ${p.name === CURRENT_PLAN ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'}`}>{p.name}</th>
+                                        <th key={p.name} className={`px-4 py-3 text-center text-[10px] font-black uppercase tracking-wider ${p.name === CURRENT_PLAN ? 'text-blue-700' : 'text-gray-500'}`}>{p.name}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {FEATURE_KEYS.map(feat => (
-                                    <tr key={feat} className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/20">
-                                        <td className="px-4 py-2.5 text-xs text-gray-700 dark:text-slate-200 font-medium">{feat}</td>
+                                    <tr key={feat} className="border-b border-gray-50 hover:bg-gray-50">
+                                        <td className="px-4 py-2.5 text-xs text-gray-700 font-medium">{feat}</td>
                                         {PLANS.map(p => (
                                             <td key={p.name} className="px-4 py-2.5 text-center">
                                                 <FeatureValue val={p.features[feat as keyof typeof p.features]} />
@@ -211,8 +211,8 @@ export default function SubscriptionPage() {
                     </div>
                 </div>
 
-                <p className="text-[10px] text-gray-400 dark:text-slate-500 text-center">
-                    Need help choosing? <button className="text-blue-700 dark:text-blue-400 hover:underline font-semibold">Contact our sales team</button> · Prices exclude VAT · Annual billing saves 20%
+                <p className="text-[10px] text-gray-400 text-center">
+                    Need help choosing? <button className="text-blue-700 hover:underline font-semibold">Contact our sales team</button> · Prices exclude VAT · Annual billing saves 20%
                 </p>
             </div>
         </PageLayout>

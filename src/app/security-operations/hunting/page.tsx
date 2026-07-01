@@ -30,8 +30,8 @@ const HUNT_HISTORY = [
 ];
 
 const SEV: Record<string, string> = {
-    Critical: 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/40',
-    High: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700/40',
+    Critical: 'text-red-600 bg-red-50 border-red-200',
+    High: 'text-orange-600 bg-orange-50 border-orange-200',
 };
 
 export default function HuntingPage() {
@@ -55,27 +55,27 @@ export default function HuntingPage() {
         <PageLayout title="Threat Hunting">
             <div className="space-y-4">
                 <div>
-                    <h1 className="text-lg font-black text-gray-900 dark:text-slate-100">Threat Hunting</h1>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">Security Operations · Proactive threat hunting across your environment</p>
+                    <h1 className="text-lg font-black text-gray-900">Threat Hunting</h1>
+                    <p className="text-xs text-gray-500">Security Operations · Proactive threat hunting across your environment</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-5">
                     {/* Query Builder */}
-                    <div className="col-span-2 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    <div className="col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden">
                         <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                         <div className="p-4">
                             <div className="flex items-center justify-between mb-4">
-                                <p className="text-xs font-black text-gray-800 dark:text-slate-100">Hunt Query Builder</p>
+                                <p className="text-xs font-black text-gray-800">Hunt Query Builder</p>
                                 <div className="flex items-center gap-3">
                                     <select value={template} onChange={e => setTemplate(e.target.value)}
-                                        className="text-[10px] bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-1.5 text-gray-600 dark:text-slate-300 focus:outline-none">
+                                        className="text-[10px] bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none">
                                         <option value="">Load template…</option>
                                         {TEMPLATES.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
                                     </select>
-                                    <div className="flex bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
+                                    <div className="flex bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
                                         {(['AND', 'OR'] as const).map(l => (
                                             <button key={l} onClick={() => setLogic(l)}
-                                                className={`px-3 py-1.5 text-[10px] font-bold transition-colors ${logic === l ? 'bg-blue-700 text-white' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'}`}>{l}</button>
+                                                className={`px-3 py-1.5 text-[10px] font-bold transition-colors ${logic === l ? 'bg-blue-700 text-white' : 'text-gray-500 hover:text-gray-700'}`}>{l}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -85,26 +85,26 @@ export default function HuntingPage() {
                                 {conditions.map((cond, i) => (
                                     <div key={i} className="flex items-center gap-2">
                                         {i > 0 && <span className="text-[10px] font-bold text-violet-600 w-8 flex-shrink-0">{logic}</span>}
-                                        {i === 0 && <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 w-8 flex-shrink-0">IF</span>}
+                                        {i === 0 && <span className="text-[10px] font-bold text-gray-400 w-8 flex-shrink-0">IF</span>}
                                         <select value={cond.field} onChange={e => updateCondition(i, 'field', e.target.value)}
-                                            className="flex-1 text-[10px] bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-200 focus:outline-none font-mono">
+                                            className="flex-1 text-[10px] bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none font-mono">
                                             {FIELDS.map(f => <option key={f}>{f}</option>)}
                                         </select>
                                         <select value={cond.op} onChange={e => updateCondition(i, 'op', e.target.value)}
-                                            className="w-32 text-[10px] bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-200 focus:outline-none">
+                                            className="w-32 text-[10px] bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none">
                                             {OPS.map(o => <option key={o}>{o}</option>)}
                                         </select>
                                         <input value={cond.value} onChange={e => updateCondition(i, 'value', e.target.value)} placeholder="Value…"
-                                            className="flex-1 text-[10px] bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1.5 text-gray-700 dark:text-slate-200 focus:outline-none font-mono" />
+                                            className="flex-1 text-[10px] bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 focus:outline-none font-mono" />
                                         {conditions.length > 1 && (
-                                            <button onClick={() => removeCondition(i)} className="text-gray-300 dark:text-slate-600 hover:text-red-500 transition-colors text-sm">✕</button>
+                                            <button onClick={() => removeCondition(i)} className="text-gray-300 hover:text-red-500 transition-colors text-sm">✕</button>
                                         )}
                                     </div>
                                 ))}
                             </div>
 
                             <div className="flex gap-3">
-                                <button onClick={addCondition} className="text-[10px] font-bold text-blue-700 dark:text-blue-400 border border-dashed border-blue-200 dark:border-blue-700/40 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">+ Add Condition</button>
+                                <button onClick={addCondition} className="text-[10px] font-bold text-blue-700 border border-dashed border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">+ Add Condition</button>
                                 <button onClick={runHunt} disabled={running} className="px-6 py-1.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white text-[10px] font-black rounded-lg transition-colors">
                                     {running ? '⏳ Running Hunt…' : '▶ Run Hunt'}
                                 </button>
@@ -112,27 +112,27 @@ export default function HuntingPage() {
 
                             {/* Results */}
                             {results && (
-                                <div className="mt-4 border-t border-gray-100 dark:border-slate-700 pt-4">
+                                <div className="mt-4 border-t border-gray-100 pt-4">
                                     <div className="flex items-center justify-between mb-2">
-                                        <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{results.length} Matches Found</p>
-                                        <button onClick={() => setResults(null)} className="text-[10px] text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300">Clear</button>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{results.length} Matches Found</p>
+                                        <button onClick={() => setResults(null)} className="text-[10px] text-gray-400 hover:text-gray-600">Clear</button>
                                     </div>
                                     <table className="w-full text-xs">
                                         <thead>
-                                            <tr className="border-b border-gray-100 dark:border-slate-700">
+                                            <tr className="border-b border-gray-100">
                                                 {['Timestamp', 'Source', 'Asset', 'Field', 'Matched Value', 'Severity'].map(h => (
-                                                    <th key={h} className="text-left px-2 py-1.5 text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{h}</th>
+                                                    <th key={h} className="text-left px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {results.map((r, i) => (
-                                                <tr key={i} className="border-b border-gray-50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/20">
-                                                    <td className="px-2 py-2 font-mono text-gray-400 dark:text-slate-500 text-[9px]">{r.ts}</td>
-                                                    <td className="px-2 py-2 text-gray-500 dark:text-slate-400 text-[9px]">{r.source}</td>
-                                                    <td className="px-2 py-2 font-mono text-gray-700 dark:text-slate-200 text-[9px]">{r.asset}</td>
-                                                    <td className="px-2 py-2 font-mono text-violet-600 dark:text-violet-400 text-[9px]">{r.field}</td>
-                                                    <td className="px-2 py-2 font-mono text-gray-700 dark:text-slate-200 text-[9px] max-w-[160px] truncate">{r.value}</td>
+                                                <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                                                    <td className="px-2 py-2 font-mono text-gray-400 text-[9px]">{r.ts}</td>
+                                                    <td className="px-2 py-2 text-gray-500 text-[9px]">{r.source}</td>
+                                                    <td className="px-2 py-2 font-mono text-gray-700 text-[9px]">{r.asset}</td>
+                                                    <td className="px-2 py-2 font-mono text-violet-600 text-[9px]">{r.field}</td>
+                                                    <td className="px-2 py-2 font-mono text-gray-700 text-[9px] max-w-[160px] truncate">{r.value}</td>
                                                     <td className="px-2 py-2">
                                                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${SEV[r.severity]}`}>{r.severity}</span>
                                                     </td>
@@ -147,32 +147,32 @@ export default function HuntingPage() {
 
                     {/* Templates + History */}
                     <div className="space-y-3">
-                        <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                             <div className="p-4">
-                                <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Hunt Templates</p>
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Hunt Templates</p>
                                 <div className="space-y-2">
                                     {TEMPLATES.map(t => (
                                         <button key={t.name} onClick={() => setTemplate(t.name)}
-                                            className="w-full text-left p-2.5 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-600 hover:border-blue-200 dark:hover:border-blue-700/40 transition-colors group">
-                                            <p className="text-[10px] font-bold text-gray-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-400">{t.name}</p>
-                                            <p className="text-[9px] text-gray-400 dark:text-slate-500 mt-0.5">{t.desc}</p>
+                                            className="w-full text-left p-2.5 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-200 transition-colors group">
+                                            <p className="text-[10px] font-bold text-gray-700 group-hover:text-blue-700">{t.name}</p>
+                                            <p className="text-[9px] text-gray-400 mt-0.5">{t.desc}</p>
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                             <div className="p-4">
-                                <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Hunt History</p>
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Hunt History</p>
                                 <div className="space-y-2">
                                     {HUNT_HISTORY.map((h, i) => (
-                                        <div key={i} className="flex items-start justify-between py-1.5 border-b border-gray-100 dark:border-slate-700/50">
+                                        <div key={i} className="flex items-start justify-between py-1.5 border-b border-gray-100">
                                             <div>
-                                                <p className="text-[10px] font-semibold text-gray-700 dark:text-slate-200">{h.name}</p>
-                                                <p className="text-[9px] text-gray-400 dark:text-slate-500">{h.analyst} · {h.time}</p>
+                                                <p className="text-[10px] font-semibold text-gray-700">{h.name}</p>
+                                                <p className="text-[9px] text-gray-400">{h.analyst} · {h.time}</p>
                                             </div>
                                             <span className={`text-[10px] font-black ${h.results > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{h.results > 0 ? `${h.results} hits` : 'Clean'}</span>
                                         </div>

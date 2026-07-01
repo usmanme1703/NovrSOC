@@ -46,16 +46,16 @@ const ADVISORIES = [
 ];
 
 const SEV_STYLE: Record<string, string> = {
-    Critical: 'border-l-red-600 bg-red-50 dark:bg-red-900/10',
-    High: 'border-l-orange-500 bg-orange-50 dark:bg-orange-900/10',
-    Medium: 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/10',
-    Low: 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/10',
+    Critical: 'border-l-red-600 bg-red-50',
+    High: 'border-l-orange-500 bg-orange-50',
+    Medium: 'border-l-amber-500 bg-amber-50',
+    Low: 'border-l-blue-500 bg-blue-50',
 };
 const SEV_BADGE: Record<string, string> = {
-    Critical: 'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-700/40',
-    High: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 border-orange-200 dark:border-orange-700/40',
-    Medium: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-700/40',
-    Low: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-200 dark:border-blue-700/40',
+    Critical: 'bg-red-50 text-red-600 border-red-200',
+    High: 'bg-orange-50 text-orange-600 border-orange-200',
+    Medium: 'bg-amber-50 text-amber-600 border-amber-200',
+    Low: 'bg-blue-50 text-blue-600 border-blue-200',
 };
 
 export default function AdvisoryPage() {
@@ -63,8 +63,8 @@ export default function AdvisoryPage() {
         <PageLayout title="Threat Advisory">
             <div className="space-y-4">
                 <div>
-                    <h1 className="text-lg font-black text-gray-900 dark:text-slate-100">Threat Advisory</h1>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">Threat Intelligence · Active advisories from Nigerian and global threat intelligence sources</p>
+                    <h1 className="text-lg font-black text-gray-900">Threat Advisory</h1>
+                    <p className="text-xs text-gray-500">Threat Intelligence · Active advisories from Nigerian and global threat intelligence sources</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -77,24 +77,24 @@ export default function AdvisoryPage() {
 
                 <div className="space-y-3">
                     {ADVISORIES.map(a => (
-                        <div key={a.id} className={`border-l-4 ${SEV_STYLE[a.sev]} rounded-r-xl p-4 border border-gray-200 dark:border-slate-700 border-l-4`}>
+                        <div key={a.id} className={`border-l-4 ${SEV_STYLE[a.sev]} rounded-r-xl p-4 border border-gray-200 border-l-4`}>
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${SEV_BADGE[a.sev]}`}>{a.sev}</span>
-                                        <span className="text-[10px] font-mono text-gray-400 dark:text-slate-500">{a.id}</span>
-                                        <span className="text-[10px] text-gray-400 dark:text-slate-500">· {a.source}</span>
-                                        <span className="text-[10px] text-gray-400 dark:text-slate-500">· {a.published}</span>
+                                        <span className="text-[10px] font-mono text-gray-400">{a.id}</span>
+                                        <span className="text-[10px] text-gray-400">· {a.source}</span>
+                                        <span className="text-[10px] text-gray-400">· {a.published}</span>
                                     </div>
-                                    <h3 className="text-sm font-black text-gray-900 dark:text-slate-100 mb-1">{a.title}</h3>
-                                    <p className="text-[11px] text-gray-600 dark:text-slate-300 leading-relaxed mb-2">{a.summary}</p>
+                                    <h3 className="text-sm font-black text-gray-900 mb-1">{a.title}</h3>
+                                    <p className="text-[11px] text-gray-600 leading-relaxed mb-2">{a.summary}</p>
                                     <div className="flex items-center gap-3 flex-wrap">
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase">Sectors:</span>
-                                            {a.sectors.map(s => <span key={s} className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 rounded">{s}</span>)}
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase">Sectors:</span>
+                                            {a.sectors.map(s => <span key={s} className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>)}
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[9px] font-bold text-blue-700 dark:text-blue-400">→ {a.action}</span>
+                                            <span className="text-[9px] font-bold text-blue-700">→ {a.action}</span>
                                         </div>
                                     </div>
                                 </div>

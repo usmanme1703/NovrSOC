@@ -21,8 +21,8 @@ const DNS_QUERIES = [
 ];
 
 const STATUS_STYLE: Record<string, string> = {
-    Blocked: 'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-700/40',
-    Allowed: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-200 dark:border-emerald-700/40',
+    Blocked: 'bg-red-50 text-red-600 border-red-200',
+    Allowed: 'bg-emerald-50 text-emerald-600 border-emerald-200',
 };
 const CAT_STYLE = (c: string) =>
     c === 'Legitimate' ? 'text-emerald-600' :
@@ -36,45 +36,45 @@ export default function DNSPage() {
         <PageLayout title="DNS Tracker">
             <div className="space-y-4">
                 <div>
-                    <h1 className="text-lg font-black text-gray-900 dark:text-slate-100">DNS Tracker</h1>
-                    <p className="text-xs text-gray-500 dark:text-slate-400">Threat Intelligence · DNS query monitoring and threat detection</p>
+                    <h1 className="text-lg font-black text-gray-900">DNS Tracker</h1>
+                    <p className="text-xs text-gray-500">Threat Intelligence · DNS query monitoring and threat detection</p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                        { label: 'DNS Queries Today', v: '48,291', color: 'text-gray-900 dark:text-slate-100' },
+                        { label: 'DNS Queries Today', v: '48,291', color: 'text-gray-900' },
                         { label: 'Blocked', v: String(blocked + 124), color: 'text-red-600' },
                         { label: 'Malicious Domains', v: String(malicious + 15), color: 'text-orange-600' },
-                        { label: 'Top Queried', v: 'api.paystack.com', color: 'text-blue-700 dark:text-blue-400' },
+                        { label: 'Top Queried', v: 'api.paystack.com', color: 'text-blue-700' },
                     ].map(k => (
-                        <div key={k.label} className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl p-3">
+                        <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-3">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-3 -mx-3 mb-2 rounded-t-xl" />
-                            <p className="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">{k.label}</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{k.label}</p>
                             <p className={`text-base font-black ${k.color} truncate`}>{k.v}</p>
                         </div>
                     ))}
                 </div>
 
-                <div className="bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="border-b border-gray-200 dark:border-slate-700">
+                                <tr className="border-b border-gray-200">
                                     {['Domain', 'Type', 'Source Asset', 'Response', 'Category', 'Time', 'Status'].map(h => (
-                                        <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                                        <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {DNS_QUERIES.map((q, i) => (
-                                    <tr key={i} className="border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/20 transition-colors">
-                                        <td className="px-4 py-2.5 font-mono text-gray-700 dark:text-slate-200 text-[10px] max-w-[200px] truncate">{q.domain}</td>
-                                        <td className="px-4 py-2.5 font-mono text-gray-400 dark:text-slate-500 text-[10px]">{q.type}</td>
-                                        <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-slate-300 text-[10px]">{q.asset}</td>
-                                        <td className="px-4 py-2.5 font-mono text-gray-500 dark:text-slate-400 text-[10px]">{q.response}</td>
+                                    <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-2.5 font-mono text-gray-700 text-[10px] max-w-[200px] truncate">{q.domain}</td>
+                                        <td className="px-4 py-2.5 font-mono text-gray-400 text-[10px]">{q.type}</td>
+                                        <td className="px-4 py-2.5 font-mono text-gray-600 text-[10px]">{q.asset}</td>
+                                        <td className="px-4 py-2.5 font-mono text-gray-500 text-[10px]">{q.response}</td>
                                         <td className={`px-4 py-2.5 font-bold text-[10px] ${CAT_STYLE(q.category)}`}>{q.category}</td>
-                                        <td className="px-4 py-2.5 font-mono text-gray-400 dark:text-slate-500 text-[10px]">{q.time}</td>
+                                        <td className="px-4 py-2.5 font-mono text-gray-400 text-[10px]">{q.time}</td>
                                         <td className="px-4 py-2.5">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_STYLE[q.status]}`}>{q.status}</span>
                                         </td>
@@ -83,8 +83,8 @@ export default function DNSPage() {
                             </tbody>
                         </table>
                     </div>
-                    <div className="px-4 py-3 border-t border-gray-100 dark:border-slate-700">
-                        <p className="text-[10px] text-gray-400 dark:text-slate-500">Showing last 15 DNS events · Real-time updates every 30 seconds</p>
+                    <div className="px-4 py-3 border-t border-gray-100">
+                        <p className="text-[10px] text-gray-400">Showing last 15 DNS events · Real-time updates every 30 seconds</p>
                     </div>
                 </div>
             </div>

@@ -47,8 +47,8 @@ function statusDot(s: string) {
 }
 
 const Card = ({ children }: { children: React.ReactNode }) => (
-    <div className="rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm bg-white dark:bg-[#1e293b]">
-        <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+    <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
+        <div className="h-[3px] bg-[#1d4ed8]" />
         {children}
     </div>
 );
@@ -64,33 +64,33 @@ export const RightRail = () => {
 
     return (
         <>
-            <aside className="w-[305px] bg-white dark:bg-[#1e293b] border-l border-gray-200 dark:border-slate-700 h-screen sticky top-0 flex flex-col z-30 flex-shrink-0">
+            <aside className="w-[305px] bg-white border-l border-slate-200 h-screen sticky top-0 flex flex-col z-30 flex-shrink-0">
 
                 {/* Top controls */}
-                <div className="h-[64px] border-b border-gray-200 dark:border-slate-700 px-4 flex items-center justify-between flex-shrink-0">
+                <div className="h-[64px] border-b border-slate-200 px-4 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-1.5">
                         <span className="relative flex h-2 w-2 flex-shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                         </span>
-                        <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400">Cloud Node</span>
+                        <span className="text-[10px] font-bold text-slate-500">Cloud Node</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                         <button
                             onClick={openPanel}
-                            className="relative w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 flex items-center justify-center text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                            className="relative w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
                             {!seen && unreadCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#dc2626] rounded-full border-2 border-white" />
                             )}
                         </button>
 
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-700 to-violet-600 flex items-center justify-center cursor-pointer flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1d4ed8] to-[#7c3aed] flex items-center justify-center cursor-pointer flex-shrink-0">
                             <span className="text-[10px] font-black text-white">MA</span>
                         </div>
                     </div>
@@ -102,19 +102,19 @@ export const RightRail = () => {
                         <div className="p-4">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <span className="text-xs">🏢</span>
-                                <h4 className="text-[11px] font-bold text-gray-700 dark:text-slate-200">Account Overview</h4>
+                                <h4 className="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3">Account Overview</h4>
                             </div>
-                            <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Current tenant and account information.</p>
+                            <p className="text-[10px] text-slate-500 mb-3">Current tenant and account information.</p>
                             <div className="space-y-2">
                                 {accountRows.map(row => (
                                     <div key={row.label} className="flex items-start justify-between gap-2">
-                                        <span className="text-[10px] text-gray-400 dark:text-slate-500 flex-shrink-0">{row.label}</span>
-                                        <span className="text-[10px] font-semibold text-gray-700 dark:text-slate-200 text-right">{row.value}</span>
+                                        <span className="text-[10px] text-slate-500 flex-shrink-0">{row.label}</span>
+                                        <span className="text-[10px] font-medium text-slate-800 text-right">{row.value}</span>
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                                <button className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 hover:underline">Manage Account →</button>
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                                <button className="text-[10px] font-semibold text-blue-700 hover:underline">Manage Account →</button>
                             </div>
                         </div>
                     </Card>
@@ -123,26 +123,26 @@ export const RightRail = () => {
                         <div className="p-4">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <span className="text-xs">🟢</span>
-                                <h4 className="text-[11px] font-bold text-gray-700 dark:text-slate-200">Platform Health</h4>
+                                <h4 className="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3">Platform Health</h4>
                             </div>
-                            <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Overall platform status.</p>
+                            <p className="text-[10px] text-slate-500 mb-3">Overall platform status.</p>
                             <div className="space-y-2">
                                 {healthRows.map(row => (
                                     <div key={row.label} className="flex items-center justify-between gap-2">
-                                        <span className="text-[10px] text-gray-400 dark:text-slate-500">{row.label}</span>
+                                        <span className="text-[10px] text-slate-500">{row.label}</span>
                                         {row.status ? (
                                             <span className={`flex items-center gap-1 text-[10px] font-semibold ${statusColor(row.status)}`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot(row.status)}`} />
                                                 {row.status}
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] font-semibold text-gray-700 dark:text-slate-200">{row.value}</span>
+                                            <span className="text-[10px] font-medium text-slate-800">{row.value}</span>
                                         )}
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                                <button className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 hover:underline">View System Status →</button>
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                                <button className="text-[10px] font-semibold text-blue-700 hover:underline">View System Status →</button>
                             </div>
                         </div>
                     </Card>
@@ -151,19 +151,19 @@ export const RightRail = () => {
                         <div className="p-4">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <span className="text-xs">⚡</span>
-                                <h4 className="text-[11px] font-bold text-gray-700 dark:text-slate-200">Quick Actions</h4>
+                                <h4 className="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3">Quick Actions</h4>
                             </div>
-                            <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Frequently used administrative tasks.</p>
+                            <p className="text-[10px] text-slate-500 mb-3">Frequently used administrative tasks.</p>
                             <div className="space-y-0.5">
                                 {quickActions.map(action => (
-                                    <button key={action.label} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all group text-left">
+                                    <button key={action.label} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-blue-50 transition-all group text-left">
                                         <span className="text-xs w-4 text-center flex-shrink-0">{action.icon}</span>
-                                        <span className="text-[10px] font-semibold text-gray-600 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{action.label}</span>
+                                        <span className="text-[10px] font-semibold text-slate-600 group-hover:text-blue-700 transition-colors">{action.label}</span>
                                     </button>
                                 ))}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                                <button className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 hover:underline">View All Actions →</button>
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                                <button className="text-[10px] font-semibold text-blue-700 hover:underline">View All Actions →</button>
                             </div>
                         </div>
                     </Card>
@@ -174,17 +174,19 @@ export const RightRail = () => {
             <div onClick={closePanel} className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${panelOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} />
 
             {/* Notification panel */}
-            <div className={`fixed inset-y-0 right-0 w-[380px] bg-white dark:bg-[#1e293b] z-50 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${panelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="h-[56px] border-b border-gray-200 dark:border-slate-700 px-5 flex items-center justify-between flex-shrink-0">
+            <div className={`fixed inset-y-0 right-0 w-[380px] bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${panelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                <div className="h-[56px] border-b border-slate-200 px-5 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <h2 className="font-bold text-gray-900 dark:text-slate-100 text-sm">Notifications</h2>
-                        {unreadCount > 0 && <span className="text-[10px] font-black bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                        <h2 className="font-bold text-slate-900 text-sm">Notifications</h2>
+                        {unreadCount > 0 && (
+                            <span className="text-[10px] font-black bg-[#dc2626] text-white px-2 py-0.5 rounded-full">{unreadCount}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-3">
                         {!allRead && (
-                            <button onClick={() => setAllRead(true)} className="text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline">Mark all as read</button>
+                            <button onClick={() => setAllRead(true)} className="text-[11px] font-semibold text-blue-700 hover:underline">Mark all as read</button>
                         )}
-                        <button onClick={closePanel} className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+                        <button onClick={closePanel} className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
@@ -197,20 +199,20 @@ export const RightRail = () => {
                         const cfg = TYPE_CONFIG[notif.type];
                         const isRead = notif.read || allRead;
                         return (
-                            <div key={notif.id} className={`border-l-[4px] ${cfg.border} ${isRead ? 'bg-white dark:bg-[#1e293b]' : cfg.unreadBg} px-4 py-4 border-b border-gray-100 dark:border-slate-700 cursor-pointer hover:brightness-95 transition-all`}>
+                            <div key={notif.id} className={`border-l-[4px] ${cfg.border} ${isRead ? 'bg-white' : cfg.unreadBg} px-4 py-4 border-b border-slate-100 cursor-pointer hover:brightness-95 transition-all`}>
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
-                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 flex-shrink-0">{notif.time}</span>
+                                    <span className="text-[10px] text-slate-400 flex-shrink-0">{notif.time}</span>
                                 </div>
-                                <p className={`text-xs font-bold mb-1 ${isRead ? 'text-gray-600 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'}`}>{notif.title}</p>
-                                <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-snug">{notif.description}</p>
+                                <p className={`text-xs font-bold mb-1 ${isRead ? 'text-slate-600' : 'text-slate-900'}`}>{notif.title}</p>
+                                <p className="text-[11px] text-slate-500 leading-snug">{notif.description}</p>
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="border-t border-gray-100 dark:border-slate-700 px-5 py-3 flex-shrink-0">
-                    <Link href="/notifications" onClick={closePanel} className="text-[11px] font-semibold text-blue-700 dark:text-blue-400 hover:underline">View all notifications →</Link>
+                <div className="border-t border-slate-100 px-5 py-3 flex-shrink-0">
+                    <Link href="/notifications" onClick={closePanel} className="text-[11px] font-semibold text-blue-700 hover:underline">View all notifications →</Link>
                 </div>
             </div>
         </>
