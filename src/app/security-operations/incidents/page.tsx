@@ -1,8 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { INCIDENTS, INCIDENT_KPIS, type Incident } from '@/lib/mock/incidents';
+
+type CtipStats = {
+    total_iocs: number;
+    iocs_last_24h: number;
+    active_campaigns: number;
+    exploitable_cves_this_week: number;
+    sources_active: number;
+    last_collector_run: string | null;
+};
 
 const sevColor: Record<string, string> = {
     Critical: 'bg-red-50 text-red-600 border-red-200',
@@ -23,6 +32,14 @@ export default function IncidentsPage() {
     const [sevFilter, setSevFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [expanded, setExpanded] = useState<string | null>(null);
+    const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/stats')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: CtipStats) => setCtipStats(data))
+            .catch(() => setCtipStats(null));
+    }, []);
 
     const filtered = INCIDENTS.filter(i => {
         const q = search.toLowerCase();
@@ -39,6 +56,29 @@ export default function IncidentsPage() {
                     <h1 className="text-lg font-black text-gray-900">Incident Queue</h1>
                     <p className="text-xs text-gray-400">Security Operations · Real-time incident tracking and response management</p>
                 </div>
+
+                {/* Live Threat Context widget — only rendered when CTIP responds with data */}
+                {ctipStats && ctipStats.total_iocs > 0 && (
+                    <div className="bg-slate-50 rounded-xl border-l-4 border-blue-700 border border-slate-200 p-4 mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="font-semibold text-slate-800 text-sm">Live Threat Context</span>
+                            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full font-medium">Powered by CTIP</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            {[
+                                { value: ctipStats.total_iocs.toLocaleString(), label: 'IOCs in Database' },
+                                { value: ctipStats.iocs_last_24h.toLocaleString(), label: 'New Last 24hrs' },
+                                { value: ctipStats.active_campaigns.toLocaleString(), label: 'Active Campaigns' },
+                                { value: ctipStats.exploitable_cves_this_week.toLocaleString(), label: 'Exploitable CVEs' },
+                            ].map(chip => (
+                                <div key={chip.label} className="bg-white rounded-lg border border-slate-200 shadow-sm px-4 py-3">
+                                    <p className="text-xl font-bold text-slate-900">{chip.value}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{chip.label}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* KPIs */}
                 <div className="grid grid-cols-5 gap-3">

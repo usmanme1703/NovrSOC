@@ -1,6 +1,16 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
+
+type CtipStats = {
+    total_iocs: number;
+    iocs_last_24h: number;
+    active_campaigns: number;
+    exploitable_cves_this_week: number;
+    sources_active: number;
+    last_collector_run: string | null;
+};
 
 const ADVISORIES = [
     {
@@ -59,9 +69,37 @@ const SEV_BADGE: Record<string, string> = {
 };
 
 export default function AdvisoryPage() {
+    const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/stats')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: CtipStats) => setCtipStats(data))
+            .catch(() => setCtipStats(null));
+    }, []);
+
     return (
         <PageLayout title="Threat Advisory">
             <div className="space-y-4">
+                {/* Live Intel Banner — only rendered when CTIP responds with data */}
+                {ctipStats && ctipStats.total_iocs > 0 && (
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" />
+                            <span className="text-xs text-green-600 font-medium">CTIP Live</span>
+                        </div>
+                        <p className="text-xs text-slate-600">
+                            Live Intel:{' '}
+                            <span className="font-bold text-blue-700">{ctipStats.iocs_last_24h.toLocaleString()}</span>
+                            {' '}new IOCs tracked in the last 24 hours across{' '}
+                            <span className="font-bold text-blue-700">{ctipStats.sources_active}</span>
+                            {' '}active sources —{' '}
+                            <span className="font-bold text-blue-700">{ctipStats.total_iocs.toLocaleString()}</span>
+                            {' '}total indicators in database
+                        </p>
+                    </div>
+                )}
+
                 <div>
                     <h1 className="text-lg font-black text-gray-900">Threat Advisory</h1>
                     <p className="text-xs text-gray-500">Threat Intelligence · Active advisories from Nigerian and global threat intelligence sources</p>

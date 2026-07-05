@@ -1,20 +1,108 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { CTI_KPIS, THREAT_FEEDS, CAMPAIGNS, THREAT_ACTORS, IOC_FEED } from '@/lib/mock/threats';
+
+type CtipStats = {
+    total_iocs: number;
+    iocs_last_24h: number;
+    active_campaigns: number;
+    exploitable_cves_this_week: number;
+    sources_active: number;
+    last_collector_run: string | null;
+};
+
+type CtipIOC = {
+    id: string;
+    ioc_type: string;
+    value: string;
+    source: string;
+    confidence: number;
+    malware_family: string | null;
+    threat_type: string | null;
+    country: string | null;
+    last_seen: string | null;
+    mitre_techniques: string[];
+    tags: string[];
+};
 
 const sevBadge: Record<string, string> = {
     Critical: 'bg-red-50 text-red-600 border-red-200',
     High: 'bg-orange-50 text-orange-600 border-orange-200',
 };
-const verdictColor = (v: string) => v === 'Malicious' ? 'text-red-600' : 'text-amber-600';
+const verdictColor = (v: string) => v === 'Malicious' ? 'text-red-600' : v === 'Suspicious' ? 'text-amber-600' : 'text-yellow-600';
+
+function iocVerdict(confidence: number): string {
+    if (confidence >= 90) return 'Malicious';
+    if (confidence >= 60) return 'Suspicious';
+    return 'Low Risk';
+}
+
+function iocVerdictEmoji(confidence: number): string {
+    if (confidence >= 90) return '🔴';
+    if (confidence >= 60) return '🟠';
+    return '🟡';
+}
+
+function formatSeen(ts: string | null): string {
+    if (!ts) return '—';
+    try {
+        return new Date(ts).toLocaleString();
+    } catch {
+        return ts;
+    }
+}
 
 export default function CTIPage() {
     const [iocSearch, setIocSearch] = useState('');
     const [iocResult, setIocResult] = useState(false);
+    const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
+    const [ctipIocs, setCtipIocs] = useState<CtipIOC[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/stats')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: CtipStats) => setCtipStats(data))
+            .catch(() => setCtipStats(null));
+
+        fetch('/api/threat-intel/iocs?limit=20')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: { total: number; items: CtipIOC[] }) => setCtipIocs(data.items))
+            .catch(() => setCtipIocs(null));
+    }, []);
 
     const handleIocSearch = (e: React.FormEvent) => { e.preventDefault(); if (iocSearch.trim()) setIocResult(true); };
+
+    const kpiData = ctipStats ? [
+        { label: 'IOCs Tracked', value: ctipStats.total_iocs.toLocaleString(), color: 'text-blue-700' },
+        { label: 'New Today', value: ctipStats.iocs_last_24h.toLocaleString(), color: 'text-orange-600' },
+        { label: 'Active Campaigns', value: ctipStats.active_campaigns.toLocaleString(), color: 'text-red-600' },
+        { label: 'Active Sources', value: ctipStats.sources_active.toLocaleString(), color: 'text-violet-600' },
+    ] : [
+        { label: 'IOC Count', value: CTI_KPIS.iocCount, color: 'text-blue-700' },
+        { label: 'Active Campaigns', value: CTI_KPIS.activeCampaigns, color: 'text-orange-600' },
+        { label: 'Emerging Threats', value: CTI_KPIS.emergingThreats, color: 'text-red-600' },
+        { label: 'Top Threat Actor', value: CTI_KPIS.topActor, color: 'text-violet-600' },
+    ];
+
+    const iocRows = ctipIocs
+        ? ctipIocs.map(ioc => ({
+              type: ioc.ioc_type,
+              value: ioc.value,
+              source: ioc.source,
+              seen: formatSeen(ioc.last_seen),
+              verdict: iocVerdict(ioc.confidence),
+              confidence: ioc.confidence,
+          }))
+        : IOC_FEED.map(ioc => ({
+              type: ioc.type,
+              value: ioc.value,
+              source: ioc.source,
+              seen: ioc.seen,
+              verdict: ioc.verdict,
+              confidence: ioc.verdict === 'Malicious' ? 95 : 65,
+          }));
 
     return (
         <PageLayout title="Threat Intelligence">
@@ -26,12 +114,7 @@ export default function CTIPage() {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-4 gap-3">
-                    {[
-                        { label: 'IOC Count', value: CTI_KPIS.iocCount, color: 'text-blue-700' },
-                        { label: 'Active Campaigns', value: CTI_KPIS.activeCampaigns, color: 'text-orange-600' },
-                        { label: 'Emerging Threats', value: CTI_KPIS.emergingThreats, color: 'text-red-600' },
-                        { label: 'Top Threat Actor', value: CTI_KPIS.topActor, color: 'text-violet-600' },
-                    ].map(k => (
+                    {kpiData.map(k => (
                         <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-4 rounded-t-xl" />
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{k.label}</p>
@@ -153,14 +236,14 @@ export default function CTIPage() {
                                 )}
                             </tr></thead>
                             <tbody>
-                                {IOC_FEED.map((ioc, i) => (
+                                {iocRows.map((ioc, i) => (
                                     <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded">{ioc.type}</span></td>
                                         <td className="px-4 py-2 font-mono text-gray-700">{ioc.value}</td>
                                         <td className="px-4 py-2 text-gray-500">{ioc.source}</td>
                                         <td className="px-4 py-2 text-gray-400">{ioc.seen}</td>
                                         <td className={`px-4 py-2 font-bold ${verdictColor(ioc.verdict)}`}>
-                                            {ioc.verdict === 'Malicious' ? '🔴' : '🟠'} {ioc.verdict}
+                                            {iocVerdictEmoji(ioc.confidence)} {ioc.verdict}
                                         </td>
                                     </tr>
                                 ))}
