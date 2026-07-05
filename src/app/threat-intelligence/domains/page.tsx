@@ -87,7 +87,7 @@ export default function DomainsPage() {
                             <p className="text-xs font-black text-gray-800">Typosquat Detection</p>
                             <span className="text-[9px] font-bold px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-full">{TYPOSQUATS.length} potential impersonators</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Domains registered that may be impersonating CyberNovr brands</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Domains registered that may be impersonating Cybernovr brands</p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">

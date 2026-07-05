@@ -56,7 +56,7 @@ export default function CVETrackerPage() {
             <div className="space-y-5">
                 <div>
                     <h1 className="text-lg font-black text-gray-900">CVE Tracker</h1>
-                    <p className="text-xs text-gray-400">Exposure Monitoring · Vulnerability tracking with CyberNovr Risk Scoring</p>
+                    <p className="text-xs text-gray-400">Exposure Monitoring · Vulnerability tracking with Cybernovr Risk Scoring</p>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">
@@ -94,7 +94,7 @@ export default function CVETrackerPage() {
                         <table className="w-full text-xs">
                             <thead>
                                 <tr className="border-b border-gray-200">
-                                    {['CVE ID', 'CVSS', 'Severity', 'Description', 'KEV', 'Ransomware', 'Published', 'CyberNovr Score', 'Action'].map(h => (
+                                    {['CVE ID', 'CVSS', 'Severity', 'Description', 'KEV', 'Ransomware', 'Published', 'Cybernovr Score', 'Action'].map(h => (
                                         <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                                     ))}
                                 </tr>

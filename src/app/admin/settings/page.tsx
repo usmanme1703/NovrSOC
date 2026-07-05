@@ -41,7 +41,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export default function SettingsPage() {
-    const [orgName, setOrgName]       = useState('CyberNovr Technologies');
+    const [orgName, setOrgName]       = useState('Cybernovr');
     const [timezone, setTimezone]     = useState('Africa/Lagos (WAT)');
     const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
     const [currency, setCurrency]     = useState('Nigerian Naira (₦)');

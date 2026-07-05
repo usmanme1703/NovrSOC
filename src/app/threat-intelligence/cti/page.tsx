@@ -27,6 +27,20 @@ type CtipIOC = {
     tags: string[];
 };
 
+// Vendor/collector identities are internal — the dashboard shows generic labels instead.
+const FEED_DISPLAY_NAMES: Record<string, string> = {
+    abuseipdb: 'Feed Source B',
+    otx: 'Feed Source A',
+    alienvault: 'Feed Source A',
+    'alienvault otx': 'Feed Source A',
+    threatfox: 'Threat Feed',
+    urlhaus: 'URL Intelligence',
+};
+
+function sanitizeFeedName(name: string): string {
+    return FEED_DISPLAY_NAMES[name.toLowerCase()] ?? name;
+}
+
 const sevBadge: Record<string, string> = {
     Critical: 'bg-red-50 text-red-600 border-red-200',
     High: 'bg-orange-50 text-orange-600 border-orange-200',
@@ -142,7 +156,7 @@ export default function CTIPage() {
                                 </div>
                                 {[['VirusTotal', '48/72 engines flagged', 'Malware distribution'], ['AbuseIPDB', 'Confidence 94% malicious', '312 reports'], ['AlienVault OTX', '3 threat pulses', 'Linked to Lazarus Group']].map(([src, det, ctx]) => (
                                     <div key={src} className="flex items-start gap-3 text-[10px]">
-                                        <span className="text-blue-700 font-bold w-28 flex-shrink-0">{src}</span>
+                                        <span className="text-blue-700 font-bold w-28 flex-shrink-0">{sanitizeFeedName(src)}</span>
                                         <span className="text-gray-700">{det} — <span className="text-gray-400">{ctx}</span></span>
                                     </div>
                                 ))}
@@ -158,7 +172,7 @@ export default function CTIPage() {
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-3 rounded-t-xl" />
                             <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-2 h-2 rounded-full ${f.dot}`}><span className="animate-pulse" /></div>
-                                <p className={`text-xs font-black ${f.color}`}>{f.name}</p>
+                                <p className={`text-xs font-black ${f.color}`}>{sanitizeFeedName(f.name)}</p>
                             </div>
                             <p className="text-[10px] text-gray-400">Last sync: {f.lastSync}</p>
                             <p className="text-[11px] font-bold text-gray-700 mt-1">{f.newItems}</p>
@@ -240,7 +254,7 @@ export default function CTIPage() {
                                     <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded">{ioc.type}</span></td>
                                         <td className="px-4 py-2 font-mono text-gray-700">{ioc.value}</td>
-                                        <td className="px-4 py-2 text-gray-500">{ioc.source}</td>
+                                        <td className="px-4 py-2 text-gray-500">{sanitizeFeedName(ioc.source)}</td>
                                         <td className="px-4 py-2 text-gray-400">{ioc.seen}</td>
                                         <td className={`px-4 py-2 font-bold ${verdictColor(ioc.verdict)}`}>
                                             {iocVerdictEmoji(ioc.confidence)} {ioc.verdict}

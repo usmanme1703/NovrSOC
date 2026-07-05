@@ -6,8 +6,8 @@ import { PageLayout } from '@/components/layout/PageLayout';
 const KEYS = [
     { name: 'CTIP Integration', service: 'Internal',       created: '01 Jul 2026', lastUsed: 'Today',  status: 'Active'   },
     { name: 'Anthropic API',    service: 'NovrAI',         created: '28 Jun 2026', lastUsed: 'Today',  status: 'Active'   },
-    { name: 'OTX Feed',         service: 'AlienVault',     created: '01 Jul 2026', lastUsed: 'Today',  status: 'Active'   },
-    { name: 'AbuseIPDB',        service: 'Feed Collector', created: '01 Jul 2026', lastUsed: 'Today',  status: 'Active'   },
+    { name: 'Feed Source A',    service: 'Feed Collector', created: '01 Jul 2026', lastUsed: 'Today',  status: 'Active'   },
+    { name: 'Feed Source B',    service: 'Feed Collector', created: '01 Jul 2026', lastUsed: 'Today',  status: 'Active'   },
     { name: 'Wazuh API',        service: 'SIEM',           created: 'Not configured', lastUsed: 'Never', status: 'Inactive' },
 ];
 

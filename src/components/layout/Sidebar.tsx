@@ -4,20 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const ShieldLogo = () => (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <linearGradient id="shield-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#1d4ed8"/>
-                <stop offset="50%" stopColor="#7c3aed"/>
-                <stop offset="100%" stopColor="#dc2626"/>
-            </linearGradient>
-        </defs>
-        <path d="M16 2L4 7v8c0 7.18 5.16 13.9 12 15.5C22.84 28.9 28 22.18 28 15V7L16 2z" fill="url(#shield-grad)"/>
-        <path d="M12 16l2.5 2.5L20 13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-);
-
 const NAV = [
     {
         group: 'Dashboard', icon: '🏠', items: [
@@ -111,18 +97,11 @@ export const Sidebar = () => {
 
             {/* Brand */}
             <div className="h-[64px] border-b border-slate-200 px-4 flex items-center gap-3 flex-shrink-0">
-                <ShieldLogo />
-                <div className="min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                        <p className="text-sm font-black leading-none tracking-tight text-[#1d4ed8]">
-                            NovrSOC
-                        </p>
-                        <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
-                            MSSP
-                        </span>
-                    </div>
-                    <p className="text-[10px] font-medium text-[#7c3aed] mt-0.5 leading-none">by CyberNovr</p>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/novrsoc.png" alt="NovrSOC" className="h-8 w-8 object-contain flex-shrink-0" />
+                <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
+                    MSSP
+                </span>
             </div>
 
             {/* Nav */}

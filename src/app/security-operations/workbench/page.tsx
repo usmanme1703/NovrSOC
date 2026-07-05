@@ -234,8 +234,8 @@ export default function WorkbenchPage() {
                                             <span className="text-xs font-black bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-full">🔴 MALICIOUS</span>
                                         </div>
                                         {[['VirusTotal', '48/72 engines flagged', 'Malware distribution', 'text-blue-700'],
-                                          ['AbuseIPDB', 'Confidence 94% malicious', '312 abuse reports', 'text-violet-600'],
-                                          ['AlienVault OTX', '3 threat pulses', 'Linked to Lazarus Group', 'text-orange-600'],
+                                          ['Feed Source B', 'Confidence 94% malicious', '312 abuse reports', 'text-violet-600'],
+                                          ['Feed Source A', '3 threat pulses', 'Linked to Lazarus Group', 'text-orange-600'],
                                         ].map(([src, det, ctx, cls]) => (
                                             <div key={src} className="flex items-start gap-3 border-b border-gray-200 pb-2">
                                                 <span className={`text-xs font-black ${cls} w-32 flex-shrink-0`}>{src}</span>

@@ -85,7 +85,7 @@ export default function URLScanPage() {
                                 <div className="space-y-3">
                                     {[
                                         ['VirusTotal', result.vt.label, 'text-red-600'],
-                                        ['URLHaus', result.urlhaus, 'text-red-600'],
+                                        ['URL Intelligence', result.urlhaus, 'text-red-600'],
                                         ['Category', result.category, 'text-gray-700'],
                                         ['IP Address', result.ip, 'text-gray-700 font-mono'],
                                         ['Country / ASN', result.country, 'text-gray-700'],

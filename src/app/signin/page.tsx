@@ -35,7 +35,7 @@ export default function SignInPage() {
                         <span className="text-sm font-black text-white tracking-tight">NVR</span>
                     </div>
                     <h1 className="text-2xl font-black text-gray-900 tracking-tight">NovrSOC</h1>
-                    <p className="text-xs font-semibold text-gray-400 mt-1 tracking-wider uppercase">by CyberNovr · MSSP Platform</p>
+                    <p className="text-xs font-semibold text-gray-400 mt-1 tracking-wider uppercase">by Cybernovr · MSSP Platform</p>
                 </div>
 
                 {/* Card */}
@@ -147,7 +147,7 @@ export default function SignInPage() {
 
                 {/* Footer note */}
                 <p className="text-center text-[11px] text-gray-400 mt-5">
-                    Secured by CyberNovr · SOC Platform v1.0
+                    Secured by Cybernovr · SOC Platform v1.0
                 </p>
             </div>
         </div>

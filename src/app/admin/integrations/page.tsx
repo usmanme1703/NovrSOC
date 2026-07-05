@@ -19,8 +19,8 @@ const INTEGRATIONS = [
         status: 'Connected', connected: true,
     },
     {
-        name: 'AlienVault OTX', icon: '🛰️',
-        desc: 'Open Threat Exchange — live IOC feed and threat intelligence.',
+        name: 'Feed Source A', icon: '🛰️',
+        desc: 'Live IOC feed and threat intelligence aggregation.',
         status: 'Connected', connected: true,
     },
     {

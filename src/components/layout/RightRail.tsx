@@ -6,7 +6,7 @@ import { NOTIFICATIONS, TYPE_CONFIG } from '@/data/notifications';
 import React from 'react';
 
 const accountRows = [
-    { label: 'Organization',     value: 'CyberNovr Technologies' },
+    { label: 'Organization',     value: 'Cybernovr' },
     { label: 'Subscription',     value: 'Enterprise Plan' },
     { label: 'SOC Tier',         value: 'Premium' },
     { label: 'Users',            value: '24 Active' },

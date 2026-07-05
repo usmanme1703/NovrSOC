@@ -10,20 +10,20 @@ export interface IOC {
 }
 
 export const IOC_FEED: IOC[] = [
-    { id: 'IOC-001', type: 'IP', value: '185.220.101.47', source: 'AbuseIPDB', seen: 'Today 14:22', verdict: 'Malicious', campaign: 'Operation SilverFox', tags: ['tor-exit', 'c2', 'lazarus'] },
+    { id: 'IOC-001', type: 'IP', value: '185.220.101.47', source: 'Feed Source B', seen: 'Today 14:22', verdict: 'Malicious', campaign: 'Operation SilverFox', tags: ['tor-exit', 'c2', 'lazarus'] },
     { id: 'IOC-002', type: 'Domain', value: 'secure-ng-login.com', source: 'VirusTotal', seen: 'Today 13:55', verdict: 'Malicious', campaign: 'NigerPhish-2026', tags: ['phishing', 'banking', 'credential-harvest'] },
     { id: 'IOC-003', type: 'Hash', value: 'a3f2c1d4e5b6...sha256', source: 'MISP', seen: 'Today 12:40', verdict: 'Malicious', campaign: 'RansomNG', tags: ['ransomware', 'blackcat', 'wiper'] },
-    { id: 'IOC-004', type: 'IP', value: '91.108.4.179', source: 'AlienVault OTX', seen: 'Today 11:30', verdict: 'Suspicious', tags: ['russia', 'apt', 'scanning'] },
-    { id: 'IOC-005', type: 'URL', value: 'http://update-ng.net/pay', source: 'URLHaus', seen: 'Today 10:15', verdict: 'Malicious', campaign: 'NigerPhish-2026', tags: ['phishing', 'payment', 'fintech'] },
-    { id: 'IOC-006', type: 'IP', value: '45.142.212.100', source: 'ThreatFox', seen: 'Today 09:00', verdict: 'Malicious', tags: ['c2', 'emotet', 'botnet'] },
+    { id: 'IOC-004', type: 'IP', value: '91.108.4.179', source: 'Feed Source A', seen: 'Today 11:30', verdict: 'Suspicious', tags: ['russia', 'apt', 'scanning'] },
+    { id: 'IOC-005', type: 'URL', value: 'http://update-ng.net/pay', source: 'URL Intelligence', seen: 'Today 10:15', verdict: 'Malicious', campaign: 'NigerPhish-2026', tags: ['phishing', 'payment', 'fintech'] },
+    { id: 'IOC-006', type: 'IP', value: '45.142.212.100', source: 'Threat Feed', seen: 'Today 09:00', verdict: 'Malicious', tags: ['c2', 'emotet', 'botnet'] },
     { id: 'IOC-007', type: 'Domain', value: 'updates-chrome-ng.com', source: 'VirusTotal', seen: 'Today 08:30', verdict: 'Malicious', tags: ['phishing', 'fake-update', 'malware-delivery'] },
     { id: 'IOC-008', type: 'Hash', value: 'b9e7f2a1c4d5...sha256', source: 'MISP', seen: 'Yesterday 23:10', verdict: 'Malicious', campaign: 'TelecomSweep', tags: ['apt41', 'backdoor', 'telecom'] },
     { id: 'IOC-009', type: 'Email', value: 'no-reply@zenith-bank.com.ru', source: 'Email-Gateway', seen: 'Yesterday 20:45', verdict: 'Malicious', campaign: 'Operation SilverFox', tags: ['bec', 'spoofed', 'banking'] },
-    { id: 'IOC-010', type: 'IP', value: '194.165.16.88', source: 'AbuseIPDB', seen: 'Yesterday 18:00', verdict: 'Suspicious', tags: ['scanning', 'vpn-probe'] },
-    { id: 'IOC-011', type: 'Domain', value: 'mtn-ng-account.net', source: 'URLHaus', seen: 'Yesterday 15:30', verdict: 'Malicious', campaign: 'TelecomSweep', tags: ['phishing', 'telecom', 'credential-harvest'] },
-    { id: 'IOC-012', type: 'URL', value: 'https://paysta-ck.com/invoice', source: 'ThreatFox', seen: 'Yesterday 12:00', verdict: 'Malicious', tags: ['phishing', 'payment', 'fintech'] },
+    { id: 'IOC-010', type: 'IP', value: '194.165.16.88', source: 'Feed Source B', seen: 'Yesterday 18:00', verdict: 'Suspicious', tags: ['scanning', 'vpn-probe'] },
+    { id: 'IOC-011', type: 'Domain', value: 'mtn-ng-account.net', source: 'URL Intelligence', seen: 'Yesterday 15:30', verdict: 'Malicious', campaign: 'TelecomSweep', tags: ['phishing', 'telecom', 'credential-harvest'] },
+    { id: 'IOC-012', type: 'URL', value: 'https://paysta-ck.com/invoice', source: 'Threat Feed', seen: 'Yesterday 12:00', verdict: 'Malicious', tags: ['phishing', 'payment', 'fintech'] },
     { id: 'IOC-013', type: 'Hash', value: 'c8a1b3e2d4f5...sha256', source: 'VirusTotal', seen: 'Yesterday 08:15', verdict: 'Malicious', tags: ['ransomware', 'blackcat'] },
-    { id: 'IOC-014', type: 'IP', value: '103.102.166.224', source: 'AlienVault OTX', seen: '2 days ago', verdict: 'Suspicious', tags: ['china', 'apt', 'scanning'] },
+    { id: 'IOC-014', type: 'IP', value: '103.102.166.224', source: 'Feed Source A', seen: '2 days ago', verdict: 'Suspicious', tags: ['china', 'apt', 'scanning'] },
     { id: 'IOC-015', type: 'Domain', value: 'nnpc-login-portal.tk', source: 'MISP', seen: '2 days ago', verdict: 'Malicious', campaign: 'NigerPhish-2026', tags: ['phishing', 'oil-gas', 'government'] },
 ];
 
