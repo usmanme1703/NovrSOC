@@ -98,7 +98,7 @@ export const Sidebar = () => {
             {/* Brand */}
             <div className="h-[64px] border-b border-slate-200 px-4 flex items-center gap-3 flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/novrsoc.png" alt="NovrSOC" className="h-8 w-8 object-contain flex-shrink-0" />
+                <img src="/novrsoc.png" alt="NovrSOC" width={32} height={32} className="object-contain flex-shrink-0" />
                 <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
                     MSSP
                 </span>

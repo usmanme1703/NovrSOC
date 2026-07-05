@@ -154,7 +154,7 @@ export default function CTIPage() {
                                     <p className="text-xs font-bold text-gray-800">{iocSearch}</p>
                                     <span className="text-[10px] font-black bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">🔴 MALICIOUS</span>
                                 </div>
-                                {[['VirusTotal', '48/72 engines flagged', 'Malware distribution'], ['AbuseIPDB', 'Confidence 94% malicious', '312 reports'], ['AlienVault OTX', '3 threat pulses', 'Linked to Lazarus Group']].map(([src, det, ctx]) => (
+                                {[['VirusTotal', '48/72 engines flagged', 'Malware distribution'], ['Feed Source B', 'Confidence 94% malicious', '312 reports'], ['Feed Source A', '3 threat pulses', 'Linked to Lazarus Group']].map(([src, det, ctx]) => (
                                     <div key={src} className="flex items-start gap-3 text-[10px]">
                                         <span className="text-blue-700 font-bold w-28 flex-shrink-0">{sanitizeFeedName(src)}</span>
                                         <span className="text-gray-700">{det} — <span className="text-gray-400">{ctx}</span></span>
