@@ -410,10 +410,10 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
         { label: 'Wazuh Agent Syncs', value: String(ctipStats.sources_active) + ' Active', trend: '99.8%', type: 'blue' as const },
     ] : [
-        { label: 'Threats Blocked', value: '12,841', trend: '+18%', type: 'orange' as const },
-        { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
-        { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
-        { label: 'Wazuh Agent Syncs', value: '1,418/1,420', trend: '99.8%', type: 'blue' as const },
+        { label: 'Threats Blocked', value: '...', trend: '', type: 'orange' as const },
+        { label: 'Clients Protected Today', value: '...', trend: '', type: 'blue' as const },
+        { label: 'SIEM Ingestion Rate', value: '...', trend: '', type: 'purple' as const },
+        { label: 'Wazuh Agent Syncs', value: '...', trend: '', type: 'blue' as const },
     ];
 
     const data = globalMetrics.general;

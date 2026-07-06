@@ -67,7 +67,7 @@ export const RightRail = () => {
 
     const healthRows = [
         ...baseHealthRows.slice(0, 4),
-        { label: 'Collectors', value: (ctipStats?.sources_active ?? 12) + ' Online' },
+        { label: 'Collectors', value: ctipStats ? ctipStats.sources_active + ' Online' : '...' },
         ...baseHealthRows.slice(4),
     ];
 
