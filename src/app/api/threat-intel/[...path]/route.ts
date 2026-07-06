@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 
 const CTIP_URL = process.env.CTIP_API_URL || 'http://98.89.196.60:8001';
