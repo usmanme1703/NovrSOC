@@ -269,82 +269,6 @@ const ComplianceSnapshot = () => (
     </Card>
 );
 
-/* ── 1D: SecuBreach Snapshot ── */
-const riskTier = (score: number) =>
-    score >= 80 ? { label: 'Critical Risk', color: '#dc2626' } :
-    score >= 60 ? { label: 'Elevated Risk', color: '#ea580c' } :
-    score >= 40 ? { label: 'Moderate Risk', color: '#ca8a04' } :
-    { label: 'Low Risk', color: '#16a34a' };
-
-const SecuBreachSnapshot = ({ ctipStats, exposureScore }: { ctipStats: { exploitable_cves_this_week: number } | null; exposureScore: number | null }) => {
-    const score = exposureScore ?? 63;
-    const tier = riskTier(score);
-    return (
-    <Card>
-        <div className="p-4">
-            <div className="flex items-start justify-between mb-3">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <SectionHeader title="SecuBreach — Exposure Summary" />
-                        <span className="text-[8px] font-bold px-2 py-0.5 bg-[#7c3aed] text-white rounded-full">Powered by SecuBreach</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500">Vulnerability &amp; exposure risk snapshot</p>
-                </div>
-                <Link href="/exposure/secubreach" className="text-[10px] font-semibold text-blue-700 hover:underline">Full Report →</Link>
-            </div>
-
-            <div className="bg-[#fef2f2] border-l-4 border-red-600 rounded-r-xl px-5 py-3 mb-4 flex items-center gap-4">
-                <div className="text-4xl font-black text-red-600">{ctipStats?.exploitable_cves_this_week ?? '...'}</div>
-                <div>
-                    <p className="text-sm font-bold text-slate-700">vulnerabilities likely to be exploited this week</p>
-                    <p className="text-[10px] text-slate-500">Prioritized for immediate action — do not delay patching</p>
-                </div>
-                <Link href="/exposure/secubreach" className="ml-auto text-[10px] font-bold text-red-600 border border-red-300 px-2.5 py-1 rounded-lg hover:bg-red-100 transition-colors whitespace-nowrap">
-                    View Priority List →
-                </Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Severity Breakdown</p>
-                    {[['#dc2626', 'Critical', 3], ['#ea580c', 'High', 9], ['#ca8a04', 'Medium', 34], ['#2563eb', 'Low', 112]].map(([c, l, n]) => (
-                        <div key={String(l)} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: String(c) }} />
-                                <span className="text-[10px] text-slate-500">{l}</span>
-                            </div>
-                            <span className="text-[11px] font-black text-slate-800">{n}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex flex-col items-center justify-center">
-                    <div className="relative">
-                        <GaugeChart value={score} size={80} strokeWidth={8} color={tier.color} />
-                        <span className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-lg font-black" style={{ color: tier.color }}>{score}</span>
-                            <span className="text-[8px] text-slate-500">/100</span>
-                        </span>
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-500 mt-1">Exposure Score</p>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border mt-1" style={{ color: tier.color, borderColor: tier.color, backgroundColor: `${tier.color}14` }}>{tier.label}</span>
-                </div>
-
-                <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Remediation</p>
-                    {[['Patched this week', 7, '#16a34a'], ['In Progress', 4, '#ca8a04'], ['Overdue', 2, '#dc2626']].map(([l, n, c]) => (
-                        <div key={String(l)} className="flex items-center justify-between">
-                            <span className="text-[10px] text-slate-500">{l}</span>
-                            <span className="text-[11px] font-black" style={{ color: String(c) }}>{n}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    </Card>
-    );
-};
-
 /* ── 1E: MSSP Client Portfolio ── */
 const clientStatusLabel = (c: { riskScore: number; activeIncidents: number }) =>
     c.riskScore >= 80 ? { label: '🔴 Critical', cls: 'text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold' } :
@@ -455,22 +379,6 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
-    const [exposureScore, setExposureScore] = useState<number | null>(null);
-
-    useEffect(() => {
-        fetch('/api/threat-intel/cves?limit=100', { cache: 'no-store' })
-            .then(r => r.json())
-            .then(data => {
-                const items = data?.items;
-                if (Array.isArray(items) && items.length > 0) {
-                    const scores = items.map((c: { cybernovr_score?: number }) => c.cybernovr_score ?? 0);
-                    const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
-                    setExposureScore(Math.round(avg));
-                }
-            })
-            .catch(() => {});
-    }, []);
-
     const [threatVectors, setThreatVectors] = useState<{ label: string; pct: number; color: string }[] | null>(null);
 
     useEffect(() => {
@@ -540,8 +448,6 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 <NigeriaThreatMap />
                 <ComplianceSnapshot />
             </div>
-
-            <SecuBreachSnapshot ctipStats={ctipStats} exposureScore={exposureScore} />
 
             <MSSPPanel role={role} />
 
