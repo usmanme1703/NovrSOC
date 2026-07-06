@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { KpiCard } from '../shared/KpiCard';
 import { ChartWrapper } from '../shared/ChartWrapper';
@@ -389,8 +389,30 @@ const MSSPPanel = ({ role }: { role: string }) => {
 
 /* ── Main ── */
 export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) => {
+    const [ctipStats, setCtipStats] = useState<{
+        total_iocs: number;
+        iocs_last_24h: number;
+        active_campaigns: number;
+        exploitable_cves_this_week: number;
+        sources_active: number;
+    } | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/stats')
+            .then(r => r.json())
+            .then(data => setCtipStats(data))
+            .catch(() => {});
+    }, []);
+
+    const liveSystemMetrics = ctipStats ? [
+        { label: 'Threats Blocked', value: ctipStats.total_iocs.toLocaleString(), trend: '+live', type: 'orange' as const },
+        { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
+        { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
+        { label: 'Wazuh Agent Syncs', value: String(ctipStats.sources_active) + ' Active', trend: '99.8%', type: 'blue' as const },
+    ] : systemPerformanceMetrics;
+
     const data = globalMetrics.general;
-    const allCards = [...Object.values(data), ...systemPerformanceMetrics];
+    const allCards = [...Object.values(data), ...liveSystemMetrics];
 
     return (
         <div className="space-y-6">
