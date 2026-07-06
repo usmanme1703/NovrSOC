@@ -50,7 +50,7 @@ const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | nu
                     <div className="flex items-center gap-2">
                         <div className="text-right mr-2">
                             <p className="text-[10px] text-slate-500">Attacks blocked today</p>
-                            <p className="text-sm font-black text-red-600">{ctipStats ? ctipStats.total_iocs.toLocaleString() : '3,451'}</p>
+                            <p className="text-sm font-black text-red-600">{ctipStats ? ctipStats.total_iocs.toLocaleString() : '...'}</p>
                         </div>
                         {['Last 1hr', 'Last 24hr', 'Last 7 days'].map(r => (
                             <button key={r} onClick={() => setTimeRange(r)}
@@ -279,7 +279,7 @@ const SecuBreachSnapshot = ({ ctipStats }: { ctipStats: { exploitable_cves_this_
             </div>
 
             <div className="bg-[#fef2f2] border-l-4 border-red-600 rounded-r-xl px-5 py-3 mb-4 flex items-center gap-4">
-                <div className="text-4xl font-black text-red-600">{ctipStats?.exploitable_cves_this_week ?? 12}</div>
+                <div className="text-4xl font-black text-red-600">{ctipStats?.exploitable_cves_this_week ?? '...'}</div>
                 <div>
                     <p className="text-sm font-bold text-slate-700">vulnerabilities likely to be exploited this week</p>
                     <p className="text-[10px] text-slate-500">Prioritized for immediate action — do not delay patching</p>
@@ -397,6 +397,8 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         sources_active: number;
     } | null>(null);
 
+    const [wazuhAgents, setWazuhAgents] = useState<{ active: number; total: number } | null>(null);
+
     useEffect(() => {
         fetch('/api/threat-intel/stats', { cache: 'no-store' })
             .then(r => r.json())
@@ -404,20 +406,61 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
-    const liveSystemMetrics = ctipStats ? [
-        { label: 'Threats Blocked', value: ctipStats.total_iocs.toLocaleString(), trend: '+live', type: 'orange' as const },
+    useEffect(() => {
+        fetch('/api/wazuh/agents', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const conn = data?.data?.connection;
+                if (conn) setWazuhAgents({ active: conn.active, total: conn.total });
+            })
+            .catch(() => {});
+    }, []);
+
+    const [wazuhAlerts, setWazuhAlerts] = useState<typeof generalActivityLog | null>(null);
+
+    useEffect(() => {
+        fetch('/api/wazuh/alerts', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const items = data?.data?.affected_items;
+                if (Array.isArray(items) && items.length > 0) {
+                    setWazuhAlerts(items.map((a: { timestamp?: string; rule?: { description?: string; level?: number }; full_log?: string; agent?: { name?: string } }) => {
+                        const level = a.rule?.level ?? 0;
+                        return {
+                            time: a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : '—',
+                            event: a.rule?.description ?? a.full_log ?? 'Wazuh alert',
+                            severity: level >= 12 ? 'Critical' : level >= 7 ? 'High' : level >= 4 ? 'Medium' : 'Low',
+                            source: a.agent?.name ?? 'Wazuh-Agent',
+                            status: 'New',
+                        };
+                    }));
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const liveSystemMetrics = [
+        {
+            label: 'Threats Blocked',
+            value: ctipStats ? ctipStats.total_iocs.toLocaleString() : '...',
+            trend: ctipStats ? '+live' : '',
+            type: 'orange' as const,
+        },
         { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
         { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
-        { label: 'Wazuh Agent Syncs', value: String(ctipStats.sources_active) + ' Active', trend: '99.8%', type: 'blue' as const },
-    ] : [
-        { label: 'Threats Blocked', value: '...', trend: '', type: 'orange' as const },
-        { label: 'Clients Protected Today', value: '...', trend: '', type: 'blue' as const },
-        { label: 'SIEM Ingestion Rate', value: '...', trend: '', type: 'purple' as const },
-        { label: 'Wazuh Agent Syncs', value: '...', trend: '', type: 'blue' as const },
+        {
+            label: 'Wazuh Agent Syncs',
+            value: wazuhAgents ? `${wazuhAgents.active}/${wazuhAgents.total} Active` : '...',
+            trend: wazuhAgents ? `${Math.round((wazuhAgents.active / wazuhAgents.total) * 100)}%` : '',
+            type: 'blue' as const,
+        },
     ];
 
     const data = globalMetrics.general;
-    const allCards = [...Object.values(data), ...liveSystemMetrics];
+    const generalCards = Object.entries(data).map(([key, val]) =>
+        key === 'totalAssets' && wazuhAgents ? { ...val, value: wazuhAgents.total.toLocaleString() } : val
+    );
+    const allCards = [...generalCards, ...liveSystemMetrics];
 
     return (
         <div className="space-y-6">
@@ -479,7 +522,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             <DataTable
                 title="Real-Time Global Activity Feed"
                 columns={['Time', 'Telemetry Event Details', 'Severity', 'Ingestion Source', 'Status']}
-                data={generalActivityLog}
+                data={wazuhAlerts ?? generalActivityLog}
                 renderRow={(row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
                         <td className="px-6 py-4 font-mono text-xs text-slate-500">{row.time}</td>

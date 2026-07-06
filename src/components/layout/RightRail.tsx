@@ -20,9 +20,14 @@ const baseHealthRows: { label: string; status?: string; value?: string }[] = [
     { label: 'Elastic Cluster', status: 'Healthy' },
     { label: 'API Gateway',     status: 'Operational' },
     { label: 'Database',        status: 'Healthy' },
-    { label: 'Last Sync',       value: '2 min ago' },
     { label: 'Version',         value: 'NovrSOC v1.0' },
 ];
+
+function minsAgo(iso: string): string {
+    const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (mins < 1) return 'Just now';
+    return mins === 1 ? '1 min ago' : `${mins} min ago`;
+}
 
 const quickActions = [
     { icon: '＋', label: 'Add Organization' },
@@ -56,7 +61,7 @@ export const RightRail = () => {
     const [panelOpen, setPanelOpen] = useState(false);
     const [seen,      setSeen]      = useState(false);
     const [allRead,   setAllRead]   = useState(false);
-    const [ctipStats, setCtipStats] = useState<{ sources_active: number } | null>(null);
+    const [ctipStats, setCtipStats] = useState<{ sources_active: number; last_collector_run: string } | null>(null);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats', { cache: 'no-store' })
@@ -68,6 +73,7 @@ export const RightRail = () => {
     const healthRows = [
         ...baseHealthRows.slice(0, 4),
         { label: 'Collectors', value: ctipStats ? ctipStats.sources_active + ' Online' : '...' },
+        { label: 'Last Sync', value: ctipStats ? minsAgo(ctipStats.last_collector_run) : '...' },
         ...baseHealthRows.slice(4),
     ];
 
