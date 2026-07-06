@@ -119,11 +119,3 @@ export const msspTenantData = [
     { company: "Wari Energy Group", infrastructure: "AWS Multicloud", criticals: "2", health: "74/100", status: "Triaging" },
     { company: "Alt-Payment Gateways Ltd", infrastructure: "Azure Native Infrastructure", criticals: "1", health: "88/100", status: "Investigating" }
 ];
-
-// Add or replace this array inside src/data/mockData.ts
-export const systemPerformanceMetrics: MetricItem[] = [
-    { label: "Threats Blocked", value: "12,841", trend: "+18%", type: "orange" },
-    { label: "Clients Protected Today", value: "42 Active", trend: "100%", type: "blue" },
-    { label: "SIEM Ingestion Rate", value: "4.2k eps", trend: "+12%", type: "purple" },
-    { label: "Wazuh Agent Syncs", value: "1,418/1,420", trend: "99.8%", type: "blue" },
-];

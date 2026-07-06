@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { NOTIFICATIONS, TYPE_CONFIG } from '@/data/notifications';
 import React from 'react';
@@ -15,12 +15,11 @@ const accountRows = [
     { label: 'Next Renewal',     value: '15 Sep 2026' },
 ];
 
-const healthRows: { label: string; status?: string; value?: string }[] = [
+const baseHealthRows: { label: string; status?: string; value?: string }[] = [
     { label: 'Wazuh Manager',   status: 'Healthy' },
     { label: 'Elastic Cluster', status: 'Healthy' },
     { label: 'API Gateway',     status: 'Operational' },
     { label: 'Database',        status: 'Healthy' },
-    { label: 'Collectors',      value: '12 Online' },
     { label: 'Last Sync',       value: '2 min ago' },
     { label: 'Version',         value: 'NovrSOC v1.0' },
 ];
@@ -57,6 +56,20 @@ export const RightRail = () => {
     const [panelOpen, setPanelOpen] = useState(false);
     const [seen,      setSeen]      = useState(false);
     const [allRead,   setAllRead]   = useState(false);
+    const [ctipStats, setCtipStats] = useState<{ sources_active: number } | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/stats', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setCtipStats(data))
+            .catch(() => {});
+    }, []);
+
+    const healthRows = [
+        ...baseHealthRows.slice(0, 4),
+        { label: 'Collectors', value: (ctipStats?.sources_active ?? 12) + ' Online' },
+        ...baseHealthRows.slice(4),
+    ];
 
     const unreadCount = allRead ? 0 : NOTIFICATIONS.filter(n => !n.read).length;
     const openPanel  = () => { setPanelOpen(true); setSeen(true); };

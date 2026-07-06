@@ -7,7 +7,7 @@ import { ChartWrapper } from '../shared/ChartWrapper';
 import { DataTable } from '../shared/DataTable';
 import { StatusBadge } from '../shared/StatusBadge';
 import { GaugeChart } from '../shared/GaugeChart';
-import { globalMetrics, generalActivityLog, systemPerformanceMetrics } from '@/data/mockData';
+import { globalMetrics, generalActivityLog } from '@/data/mockData';
 import { FRAMEWORKS } from '@/lib/mock/compliance';
 import { CLIENTS } from '@/lib/mock/clients';
 
@@ -37,7 +37,7 @@ const ATTACK_ORIGINS = [
 ];
 const NIGERIA_X = 500, NIGERIA_Y = 240;
 
-const GlobalThreatMap = () => {
+const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | null }) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
     return (
         <Card>
@@ -50,7 +50,7 @@ const GlobalThreatMap = () => {
                     <div className="flex items-center gap-2">
                         <div className="text-right mr-2">
                             <p className="text-[10px] text-slate-500">Attacks blocked today</p>
-                            <p className="text-sm font-black text-red-600">3,451</p>
+                            <p className="text-sm font-black text-red-600">{ctipStats ? ctipStats.total_iocs.toLocaleString() : '3,451'}</p>
                         </div>
                         {['Last 1hr', 'Last 24hr', 'Last 7 days'].map(r => (
                             <button key={r} onClick={() => setTimeRange(r)}
@@ -264,7 +264,7 @@ const ComplianceSnapshot = () => (
 );
 
 /* ── 1D: SecuBreach Snapshot ── */
-const SecuBreachSnapshot = () => (
+const SecuBreachSnapshot = ({ ctipStats }: { ctipStats: { exploitable_cves_this_week: number } | null }) => (
     <Card>
         <div className="p-4">
             <div className="flex items-start justify-between mb-3">
@@ -279,7 +279,7 @@ const SecuBreachSnapshot = () => (
             </div>
 
             <div className="bg-[#fef2f2] border-l-4 border-red-600 rounded-r-xl px-5 py-3 mb-4 flex items-center gap-4">
-                <div className="text-4xl font-black text-red-600">12</div>
+                <div className="text-4xl font-black text-red-600">{ctipStats?.exploitable_cves_this_week ?? 12}</div>
                 <div>
                     <p className="text-sm font-bold text-slate-700">vulnerabilities likely to be exploited this week</p>
                     <p className="text-[10px] text-slate-500">Prioritized for immediate action — do not delay patching</p>
@@ -409,7 +409,12 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
         { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
         { label: 'Wazuh Agent Syncs', value: String(ctipStats.sources_active) + ' Active', trend: '99.8%', type: 'blue' as const },
-    ] : systemPerformanceMetrics;
+    ] : [
+        { label: 'Threats Blocked', value: '12,841', trend: '+18%', type: 'orange' as const },
+        { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
+        { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
+        { label: 'Wazuh Agent Syncs', value: '1,418/1,420', trend: '99.8%', type: 'blue' as const },
+    ];
 
     const data = globalMetrics.general;
     const allCards = [...Object.values(data), ...liveSystemMetrics];
@@ -420,14 +425,14 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            <GlobalThreatMap />
+            <GlobalThreatMap ctipStats={ctipStats} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <NigeriaThreatMap />
                 <ComplianceSnapshot />
             </div>
 
-            <SecuBreachSnapshot />
+            <SecuBreachSnapshot ctipStats={ctipStats} />
 
             <MSSPPanel role={role} />
 
