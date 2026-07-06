@@ -398,7 +398,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
     } | null>(null);
 
     useEffect(() => {
-        fetch('/api/threat-intel/stats')
+        fetch('/api/threat-intel/stats', { cache: 'no-store' })
             .then(r => r.json())
             .then(data => setCtipStats(data))
             .catch(() => {});
