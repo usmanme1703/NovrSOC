@@ -357,24 +357,28 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
     }, []);
 
     const [wazuhAlerts, setWazuhAlerts] = useState<typeof generalActivityLog | null>(null);
+    const [criticalAlertsCount, setCriticalAlertsCount] = useState<number | null>(null);
+    const [openIncidentsCount, setOpenIncidentsCount] = useState<number | null>(null);
 
     useEffect(() => {
-        fetch('/api/wazuh/alerts', { cache: 'no-store' })
+        fetch('/api/wazuh/alerts-indexer', { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
-                const items = data?.data?.affected_items;
-                if (Array.isArray(items) && items.length > 0) {
-                    setWazuhAlerts(items.map((a: { timestamp?: string; rule?: { description?: string; level?: number }; full_log?: string; agent?: { name?: string } }) => {
+                const hits = data?.hits;
+                if (Array.isArray(hits) && hits.length > 0) {
+                    setWazuhAlerts(hits.map((a: { timestamp?: string; rule?: { description?: string; level?: number }; agent?: { name?: string } }) => {
                         const level = a.rule?.level ?? 0;
                         return {
-                            time: a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : '—',
-                            event: a.rule?.description ?? a.full_log ?? 'Wazuh alert',
-                            severity: level >= 12 ? 'Critical' : level >= 7 ? 'High' : level >= 4 ? 'Medium' : 'Low',
+                            time: a.timestamp ? new Date(a.timestamp).toLocaleTimeString('en-GB') : '—',
+                            event: a.rule?.description ?? 'Wazuh alert',
                             source: a.agent?.name ?? 'Wazuh-Agent',
-                            status: 'New',
+                            severity: level >= 12 ? 'Critical' : level >= 7 ? 'High' : 'Medium',
+                            status: 'Active',
                         };
                     }));
                 }
+                if (typeof data?.criticalCount === 'number') setCriticalAlertsCount(data.criticalCount);
+                if (typeof data?.openIncidentsCount === 'number') setOpenIncidentsCount(data.openIncidentsCount);
             })
             .catch(() => {});
     }, []);
@@ -432,6 +436,8 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
     const generalCards = Object.entries(data).map(([key, val]) => {
         if (key === 'totalAssets' && wazuhAgents) return { ...val, value: wazuhAgents.total.toLocaleString() };
         if (key === 'riskScore' && riskScoreValue !== null) return { ...val, value: `${riskScoreValue}/100` };
+        if (key === 'criticalAlerts' && criticalAlertsCount !== null) return { ...val, value: String(criticalAlertsCount) };
+        if (key === 'openIncidents' && openIncidentsCount !== null) return { ...val, value: String(openIncidentsCount) };
         return val;
     });
     const allCards = [...generalCards, ...liveSystemMetrics];

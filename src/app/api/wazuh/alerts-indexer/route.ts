@@ -7,20 +7,27 @@ const INDEXER_PORT = Number(process.env.WAZUH_INDEXER_PORT || 9200);
 const INDEXER_USER = process.env.WAZUH_INDEXER_USER || 'admin';
 const INDEXER_PASS = process.env.WAZUH_INDEXER_PASS || 'iUZ+5tCMwaAAwbrBdr3doguGil.eS5Wh';
 
-function searchAlerts(): Promise<{ status: number; json: unknown }> {
+interface SearchResponse {
+    hits?: {
+        total?: { value?: number };
+        hits?: { _source?: unknown }[];
+    };
+}
+
+function search(body: unknown): Promise<SearchResponse | null> {
     return new Promise((resolve, reject) => {
-        const body = JSON.stringify({ size: 10, sort: [{ '@timestamp': { order: 'desc' } }] });
+        const payload = JSON.stringify(body);
         const auth = 'Basic ' + Buffer.from(`${INDEXER_USER}:${INDEXER_PASS}`).toString('base64');
         const req = https.request(
             {
                 hostname: INDEXER_HOST,
                 port: INDEXER_PORT,
                 path: '/wazuh-alerts-*/_search',
-                method: 'GET',
+                method: 'POST',
                 headers: {
                     Authorization: auth,
                     'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(body),
+                    'Content-Length': Buffer.byteLength(payload),
                 },
                 rejectUnauthorized: false,
                 timeout: 8000,
@@ -30,26 +37,53 @@ function searchAlerts(): Promise<{ status: number; json: unknown }> {
                 res.on('data', (chunk) => (data += chunk));
                 res.on('end', () => {
                     try {
-                        resolve({ status: res.statusCode ?? 500, json: JSON.parse(data) });
+                        resolve(JSON.parse(data));
                     } catch {
-                        resolve({ status: res.statusCode ?? 500, json: null });
+                        resolve(null);
                     }
                 });
             }
         );
         req.on('timeout', () => req.destroy(new Error('Wazuh indexer request timed out')));
         req.on('error', reject);
-        req.write(body);
+        req.write(payload);
         req.end();
+    });
+}
+
+function countByLevel(minLevel: number) {
+    return search({
+        size: 0,
+        track_total_hits: true,
+        query: {
+            bool: {
+                filter: [
+                    { range: { timestamp: { gte: 'now-24h' } } },
+                    { range: { 'rule.level': { gte: minLevel } } },
+                ],
+            },
+        },
     });
 }
 
 export async function GET() {
     try {
-        const { status, json } = await searchAlerts();
-        const hits = (json as { hits?: { hits?: unknown[] } } | null)?.hits?.hits ?? [];
-        return NextResponse.json({ hits }, { status });
+        const [alertsRes, criticalRes, openRes] = await Promise.all([
+            search({
+                size: 10,
+                sort: [{ timestamp: { order: 'desc' } }],
+                query: { range: { timestamp: { gte: 'now-24h' } } },
+            }),
+            countByLevel(12),
+            countByLevel(7),
+        ]);
+
+        const hits = (alertsRes?.hits?.hits ?? []).map((h) => h._source).filter(Boolean);
+        const criticalCount = criticalRes?.hits?.total?.value ?? null;
+        const openIncidentsCount = openRes?.hits?.total?.value ?? null;
+
+        return NextResponse.json({ hits, criticalCount, openIncidentsCount });
     } catch {
-        return NextResponse.json({ hits: [] }, { status: 502 });
+        return NextResponse.json({ hits: [], criticalCount: null, openIncidentsCount: null }, { status: 502 });
     }
 }
