@@ -37,6 +37,12 @@ const ATTACK_ORIGINS = [
 ];
 const NIGERIA_X = 500, NIGERIA_Y = 240;
 
+const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] = [
+    { label: 'Malware Activity', pct: 42, color: '#dc2626' },
+    { label: 'Phishing Infrastructure', pct: 28, color: '#7c3aed' },
+    { label: 'Ransomware Probing', pct: 18, color: '#ea580c' },
+];
+
 const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | null }) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
     return (
@@ -264,7 +270,16 @@ const ComplianceSnapshot = () => (
 );
 
 /* ── 1D: SecuBreach Snapshot ── */
-const SecuBreachSnapshot = ({ ctipStats }: { ctipStats: { exploitable_cves_this_week: number } | null }) => (
+const riskTier = (score: number) =>
+    score >= 80 ? { label: 'Critical Risk', color: '#dc2626' } :
+    score >= 60 ? { label: 'Elevated Risk', color: '#ea580c' } :
+    score >= 40 ? { label: 'Moderate Risk', color: '#ca8a04' } :
+    { label: 'Low Risk', color: '#16a34a' };
+
+const SecuBreachSnapshot = ({ ctipStats, exposureScore }: { ctipStats: { exploitable_cves_this_week: number } | null; exposureScore: number | null }) => {
+    const score = exposureScore ?? 63;
+    const tier = riskTier(score);
+    return (
     <Card>
         <div className="p-4">
             <div className="flex items-start justify-between mb-3">
@@ -305,14 +320,14 @@ const SecuBreachSnapshot = ({ ctipStats }: { ctipStats: { exploitable_cves_this_
 
                 <div className="flex flex-col items-center justify-center">
                     <div className="relative">
-                        <GaugeChart value={63} size={80} strokeWidth={8} color="#ea580c" />
+                        <GaugeChart value={score} size={80} strokeWidth={8} color={tier.color} />
                         <span className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-lg font-black text-orange-600">63</span>
+                            <span className="text-lg font-black" style={{ color: tier.color }}>{score}</span>
                             <span className="text-[8px] text-slate-500">/100</span>
                         </span>
                     </div>
                     <p className="text-[10px] font-bold text-slate-500 mt-1">Exposure Score</p>
-                    <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200 mt-1">Elevated Risk</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border mt-1" style={{ color: tier.color, borderColor: tier.color, backgroundColor: `${tier.color}14` }}>{tier.label}</span>
                 </div>
 
                 <div className="space-y-2">
@@ -327,7 +342,8 @@ const SecuBreachSnapshot = ({ ctipStats }: { ctipStats: { exploitable_cves_this_
             </div>
         </div>
     </Card>
-);
+    );
+};
 
 /* ── 1E: MSSP Client Portfolio ── */
 const clientStatusLabel = (c: { riskScore: number; activeIncidents: number }) =>
@@ -439,6 +455,50 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
+    const [exposureScore, setExposureScore] = useState<number | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/cves?limit=100', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const items = data?.items;
+                if (Array.isArray(items) && items.length > 0) {
+                    const scores = items.map((c: { cybernovr_score?: number }) => c.cybernovr_score ?? 0);
+                    const avg = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+                    setExposureScore(Math.round(avg));
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const [threatVectors, setThreatVectors] = useState<{ label: string; pct: number; color: string }[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/threat-intel/iocs?limit=500', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const items = data?.items;
+                if (Array.isArray(items) && items.length > 0) {
+                    const colors: Record<string, string> = { Malware: '#dc2626', Phishing: '#7c3aed', 'C2/Ransomware': '#ea580c', Scanning: '#ca8a04', Other: '#2563eb' };
+                    const buckets: Record<string, number> = { Malware: 0, Phishing: 0, 'C2/Ransomware': 0, Scanning: 0, Other: 0 };
+                    for (const item of items as { threat_type?: string | null }[]) {
+                        const t = (item.threat_type || '').toLowerCase();
+                        if (t.includes('malware')) buckets.Malware++;
+                        else if (t.includes('phish')) buckets.Phishing++;
+                        else if (t.includes('c2') || t.includes('ransomware')) buckets['C2/Ransomware']++;
+                        else if (t.includes('scan')) buckets.Scanning++;
+                        else buckets.Other++;
+                    }
+                    setThreatVectors(
+                        Object.entries(buckets)
+                            .filter(([, n]) => n > 0)
+                            .map(([label, n]) => ({ label, pct: Math.round((n / items.length) * 100), color: colors[label] }))
+                    );
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     const liveSystemMetrics = [
         {
             label: 'Threats Blocked',
@@ -456,10 +516,16 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         },
     ];
 
+    const riskScoreValue = ctipStats
+        ? Math.min(100, ctipStats.exploitable_cves_this_week * 10 + ctipStats.active_campaigns * 5)
+        : null;
+
     const data = globalMetrics.general;
-    const generalCards = Object.entries(data).map(([key, val]) =>
-        key === 'totalAssets' && wazuhAgents ? { ...val, value: wazuhAgents.total.toLocaleString() } : val
-    );
+    const generalCards = Object.entries(data).map(([key, val]) => {
+        if (key === 'totalAssets' && wazuhAgents) return { ...val, value: wazuhAgents.total.toLocaleString() };
+        if (key === 'riskScore' && riskScoreValue !== null) return { ...val, value: `${riskScoreValue}/100` };
+        return val;
+    });
     const allCards = [...generalCards, ...liveSystemMetrics];
 
     return (
@@ -475,7 +541,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 <ComplianceSnapshot />
             </div>
 
-            <SecuBreachSnapshot ctipStats={ctipStats} />
+            <SecuBreachSnapshot ctipStats={ctipStats} exposureScore={exposureScore} />
 
             <MSSPPanel role={role} />
 
@@ -494,11 +560,11 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm">
                     <h4 className="font-bold text-[11px] text-slate-900 uppercase tracking-widest mb-5 border-l-2 border-[#1d4ed8] pl-2">Threat Vectors Distribution</h4>
                     <div className="space-y-4">
-                        {[['Malware Activity', '42%', '#dc2626'], ['Phishing Infrastructure', '28%', '#7c3aed'], ['Ransomware Probing', '18%', '#ea580c']].map(([n, p, c]) => (
-                            <div key={n}>
-                                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5"><span>{n}</span><span>{p}</span></div>
+                        {(threatVectors ?? THREAT_VECTORS_FALLBACK).map(v => (
+                            <div key={v.label}>
+                                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5"><span>{v.label}</span><span>{v.pct}%</span></div>
                                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full" style={{ width: p, backgroundColor: c }} />
+                                    <div className="h-full rounded-full" style={{ width: `${v.pct}%`, backgroundColor: v.color }} />
                                 </div>
                             </div>
                         ))}
