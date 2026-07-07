@@ -28,12 +28,19 @@ const SectionHeader = ({ title, badge }: { title: string; badge?: string }) => (
 );
 
 /* ── 1A: Global Threat Map ── */
-const ATTACK_ORIGINS = [
+const ATTACK_ORIGINS_FALLBACK = [
     { country: '🇨🇳 China',  x: 740, y: 160, count: '1,842', label: 'Ransomware',      color: '#dc2626', dashed: '8 4' },
     { country: '🇷🇺 Russia', x: 580, y: 110, count: '1,204', label: 'APT/Nation-state', color: '#7c3aed', dashed: '6 3' },
     { country: '🇧🇷 Brazil', x: 230, y: 290, count: '876',   label: 'Phishing',         color: '#ea580c', dashed: '5 4' },
     { country: '🇺🇸 USA',    x: 100, y: 160, count: '654',   label: 'Brute Force',      color: '#ca8a04', dashed: '4 3' },
     { country: '🇮🇳 India',  x: 680, y: 200, count: '412',   label: 'Phishing',         color: '#ea580c', dashed: '5 4' },
+];
+const ORIGIN_SLOTS = [
+    { x: 740, y: 160, color: '#dc2626', dashed: '8 4' },
+    { x: 580, y: 110, color: '#7c3aed', dashed: '6 3' },
+    { x: 230, y: 290, color: '#ea580c', dashed: '5 4' },
+    { x: 100, y: 160, color: '#ca8a04', dashed: '4 3' },
+    { x: 680, y: 200, color: '#ea580c', dashed: '5 4' },
 ];
 const NIGERIA_X = 500, NIGERIA_Y = 240;
 
@@ -43,8 +50,19 @@ const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] =
     { label: 'Ransomware Probing', pct: 18, color: '#ea580c' },
 ];
 
-const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | null }) => {
+const GlobalThreatMap = ({ ctipStats, countries }: {
+    ctipStats: { total_iocs: number } | null;
+    countries: { country: string; name: string; count: number; flag: string }[] | null;
+}) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
+    const attackOrigins = countries && countries.length > 0
+        ? countries.slice(0, 5).map((c, i) => ({
+            country: `${c.flag} ${c.name}`,
+            count: c.count.toLocaleString(),
+            label: 'Live IOC Origin',
+            ...ORIGIN_SLOTS[i],
+        }))
+        : ATTACK_ORIGINS_FALLBACK;
     return (
         <Card>
             <div className="p-4">
@@ -81,7 +99,7 @@ const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | nu
                         <ellipse cx="770" cy="300" rx="60" ry="40" fill="#1e3a5f" opacity="0.6" />
                         {[100, 200, 300].map(y => <line key={y} x1="0" y1={y} x2="900" y2={y} stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="4 8" />)}
                         {[150, 300, 450, 600, 750].map(x => <line key={x} x1={x} y1="0" x2={x} y2="380" stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="4 8" />)}
-                        {ATTACK_ORIGINS.map((o, i) => {
+                        {attackOrigins.map((o, i) => {
                             const mx = (o.x + NIGERIA_X) / 2;
                             const my = Math.min(o.y, NIGERIA_Y) - 60 - i * 10;
                             return (
@@ -116,7 +134,7 @@ const GlobalThreatMap = ({ ctipStats }: { ctipStats: { total_iocs: number } | nu
                 </div>
 
                 <div className="mt-3 grid grid-cols-5 gap-2">
-                    {ATTACK_ORIGINS.map(o => (
+                    {attackOrigins.map(o => (
                         <div key={o.country} className="bg-white rounded-lg p-2 border border-slate-200 text-center">
                             <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
                             <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
@@ -411,6 +429,28 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
+    const [trendData, setTrendData] = useState<{ week: string; alerts: number; incidents: number }[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/wazuh/trend', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) setTrendData(data);
+            })
+            .catch(() => {});
+    }, []);
+
+    const [countries, setCountries] = useState<{ country: string; name: string; count: number; flag: string }[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/ctip/countries', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) setCountries(data);
+            })
+            .catch(() => {});
+    }, []);
+
     const liveSystemMetrics = [
         {
             label: 'Threats Blocked',
@@ -427,6 +467,13 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             type: 'blue' as const,
         },
     ];
+
+    const trendBars = trendData
+        ? (() => {
+            const maxAlerts = Math.max(...trendData.map(d => d.alerts), 1);
+            return trendData.map(d => ({ heightPct: Math.max(4, Math.round((d.alerts / maxAlerts) * 100)), label: d.week }));
+        })()
+        : [40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => ({ heightPct: val, label: `W${i + 1}` }));
 
     const data = globalMetrics.general;
     const generalCards = Object.entries(data).map(([key, val]) => {
@@ -450,7 +497,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            <GlobalThreatMap ctipStats={ctipStats} />
+            <GlobalThreatMap ctipStats={ctipStats} countries={countries} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <NigeriaThreatMap />
@@ -461,10 +508,10 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
 
             <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
                 <div className="w-full h-full flex items-end gap-2 pt-4">
-                    {[40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => (
+                    {trendBars.map((bar, i) => (
                         <div key={i} className="flex-1 flex flex-col items-center group">
-                            <div style={{ height: `${val}%`, backgroundColor: '#1d4ed8' }} className="w-full rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200" />
-                            <span className="text-[9px] text-slate-500 mt-1.5 font-medium">W{i + 1}</span>
+                            <div style={{ height: `${bar.heightPct}%`, backgroundColor: '#1d4ed8' }} className="w-full rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200" />
+                            <span className="text-[9px] text-slate-500 mt-1.5 font-medium">{bar.label}</span>
                         </div>
                     ))}
                 </div>

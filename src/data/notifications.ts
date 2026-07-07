@@ -1,7 +1,7 @@
 export type NotifType = 'critical' | 'warning' | 'info';
 
 export interface Notification {
-    id: number;
+    id: number | string;
     type: NotifType;
     title: string;
     description: string;

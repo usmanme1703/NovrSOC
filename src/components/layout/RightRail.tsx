@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { NOTIFICATIONS, TYPE_CONFIG } from '@/data/notifications';
+import { NOTIFICATIONS, TYPE_CONFIG, type Notification } from '@/data/notifications';
 import React from 'react';
 
 const accountRows = [
@@ -70,6 +70,19 @@ export const RightRail = () => {
             .catch(() => {});
     }, []);
 
+    const [realNotifications, setRealNotifications] = useState<Notification[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/wazuh/notifications', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) setRealNotifications(data);
+            })
+            .catch(() => {});
+    }, []);
+
+    const notifications = realNotifications && realNotifications.length > 0 ? realNotifications : NOTIFICATIONS;
+
     const healthRows = [
         ...baseHealthRows.slice(0, 4),
         { label: 'Collectors', value: ctipStats ? ctipStats.sources_active + ' Online' : '...' },
@@ -77,7 +90,7 @@ export const RightRail = () => {
         ...baseHealthRows.slice(4),
     ];
 
-    const unreadCount = allRead ? 0 : NOTIFICATIONS.filter(n => !n.read).length;
+    const unreadCount = allRead ? 0 : notifications.filter(n => !n.read).length;
     const openPanel  = () => { setPanelOpen(true); setSeen(true); };
     const closePanel = () => setPanelOpen(false);
 
@@ -214,7 +227,7 @@ export const RightRail = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto scrollbar-thin">
-                    {NOTIFICATIONS.map(notif => {
+                    {notifications.map(notif => {
                         const cfg = TYPE_CONFIG[notif.type];
                         const isRead = notif.read || allRead;
                         return (
