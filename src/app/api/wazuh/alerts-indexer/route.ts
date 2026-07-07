@@ -22,7 +22,7 @@ function search(body: unknown): Promise<SearchResponse | null> {
             {
                 hostname: INDEXER_HOST,
                 port: INDEXER_PORT,
-                path: '/wazuh-alerts-*/_search',
+                path: '/wazuh-alerts-4.x-*/_search',
                 method: 'POST',
                 headers: {
                     Authorization: auth,
@@ -57,9 +57,9 @@ function countByLevel(minLevel: number) {
         track_total_hits: true,
         query: {
             bool: {
-                filter: [
-                    { range: { timestamp: { gte: 'now-24h' } } },
+                must: [
                     { range: { 'rule.level': { gte: minLevel } } },
+                    { range: { timestamp: { gte: 'now-24h' } } },
                 ],
             },
         },
@@ -72,7 +72,7 @@ export async function GET() {
             search({
                 size: 10,
                 sort: [{ timestamp: { order: 'desc' } }],
-                query: { range: { timestamp: { gte: 'now-24h' } } },
+                _source: ['timestamp', 'rule.description', 'rule.level', 'agent.name', 'agent.ip', 'location'],
             }),
             countByLevel(12),
             countByLevel(7),
