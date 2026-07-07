@@ -17,7 +17,7 @@ interface WazuhHit {
 }
 
 interface SearchResponse {
-    hits?: { hits?: WazuhHit[] };
+    hits?: { hits?: WazuhHit[]; total?: { value?: number } };
 }
 
 function search(body: unknown): Promise<SearchResponse | null> {
@@ -69,27 +69,53 @@ function slaTimeFor(level: number): string {
     return level >= 12 ? '00:30:00' : level >= 7 ? '02:00:00' : '06:00:00';
 }
 
+function countInRange(minLevel: number, maxLevelExclusive?: number) {
+    const levelRange: { gte: number; lt?: number } = { gte: minLevel };
+    if (maxLevelExclusive !== undefined) levelRange.lt = maxLevelExclusive;
+    return search({
+        size: 0,
+        track_total_hits: true,
+        query: {
+            bool: {
+                must: [
+                    { range: { 'rule.level': levelRange } },
+                    { range: { timestamp: { gte: 'now-7d' } } },
+                ],
+            },
+        },
+    });
+}
+
 export async function GET() {
     try {
-        const res = await search({
-            size: 20,
-            sort: [{ timestamp: { order: 'desc' } }],
-            query: {
-                bool: {
-                    must: [
-                        { range: { 'rule.level': { gte: 5 } } },
-                        { range: { timestamp: { gte: 'now-7d' } } },
-                    ],
+        const [alertsRes, criticalRes, highRes, mediumRes, lowRes] = await Promise.all([
+            search({
+                size: 20,
+                sort: [
+                    { 'rule.level': { order: 'desc' } },
+                    { timestamp: { order: 'desc' } },
+                ],
+                query: {
+                    bool: {
+                        must: [
+                            { range: { 'rule.level': { gte: 3 } } },
+                            { range: { timestamp: { gte: 'now-7d' } } },
+                        ],
+                    },
                 },
-            },
-            _source: [
-                'timestamp', 'rule.description', 'rule.level',
-                'rule.groups', 'agent.name', 'agent.ip',
-                'location', 'data.srcip', 'rule.mitre.technique',
-            ],
-        });
+                _source: [
+                    'timestamp', 'rule.description', 'rule.level',
+                    'rule.groups', 'agent.name', 'agent.ip',
+                    'location', 'data.srcip', 'rule.mitre.technique',
+                ],
+            }),
+            countInRange(12),
+            countInRange(10, 12),
+            countInRange(7, 10),
+            countInRange(3, 7),
+        ]);
 
-        const rawHits = res?.hits?.hits ?? [];
+        const rawHits = alertsRes?.hits?.hits ?? [];
         const incidents = rawHits.map((h) => {
             const level = h._source.rule?.level ?? 0;
             return {
@@ -107,9 +133,17 @@ export async function GET() {
             };
         });
 
+        const critical = criticalRes?.hits?.total?.value ?? 0;
+        const high = highRes?.hits?.total?.value ?? 0;
+        const medium = mediumRes?.hits?.total?.value ?? 0;
+        const low = lowRes?.hits?.total?.value ?? 0;
+
         const kpis = {
-            total: incidents.length,
-            critical: incidents.filter((i) => i.level >= 12).length,
+            total: critical + high + medium + low,
+            critical,
+            high,
+            medium,
+            low,
             investigating: 0,
             escalated: 0,
             avgSla: '02:00:00',
@@ -118,7 +152,10 @@ export async function GET() {
         return NextResponse.json({ incidents, kpis });
     } catch {
         return NextResponse.json(
-            { incidents: [], kpis: { total: 0, critical: 0, investigating: 0, escalated: 0, avgSla: '00:00:00' } },
+            {
+                incidents: [],
+                kpis: { total: 0, critical: 0, high: 0, medium: 0, low: 0, investigating: 0, escalated: 0, avgSla: '00:00:00' },
+            },
             { status: 502 }
         );
     }
