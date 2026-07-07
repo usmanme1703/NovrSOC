@@ -5,7 +5,7 @@ import https from 'https';
 const INDEXER_HOST = process.env.WAZUH_INDEXER_HOST || '164.92.203.205';
 const INDEXER_PORT = Number(process.env.WAZUH_INDEXER_PORT || 9200);
 const INDEXER_USER = process.env.WAZUH_INDEXER_USER || 'admin';
-const INDEXER_PASS = process.env.WAZUH_INDEXER_PASS || 'iUZ+5tCMwaAAwbrBdr3doguGil.eS5Wh';
+const INDEXER_PASS = process.env.WAZUH_INDEXER_PASS;
 
 interface SearchResponse {
     hits?: {
@@ -16,6 +16,10 @@ interface SearchResponse {
 
 function search(body: unknown): Promise<SearchResponse | null> {
     return new Promise((resolve, reject) => {
+        if (!INDEXER_PASS) {
+            reject(new Error('WAZUH_INDEXER_PASS environment variable is not set'));
+            return;
+        }
         const payload = JSON.stringify(body);
         const auth = 'Basic ' + Buffer.from(`${INDEXER_USER}:${INDEXER_PASS}`).toString('base64');
         const req = https.request(

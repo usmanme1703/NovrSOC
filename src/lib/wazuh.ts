@@ -3,7 +3,7 @@ import https from 'https';
 const WAZUH_HOST = process.env.WAZUH_HOST || '164.92.203.205';
 const WAZUH_PORT = Number(process.env.WAZUH_PORT || 55000);
 const WAZUH_USER = process.env.WAZUH_USER || 'wazuh-wui';
-const WAZUH_PASS = process.env.WAZUH_PASS || 't3*DtQHA*1TA2xofkop2pCbHpZf78935';
+const WAZUH_PASS = process.env.WAZUH_PASS;
 
 interface WazuhResponse {
     status: number;
@@ -42,6 +42,7 @@ let cachedToken: { token: string; expires: number } | null = null;
 
 async function getToken(): Promise<string> {
     if (cachedToken && cachedToken.expires > Date.now()) return cachedToken.token;
+    if (!WAZUH_PASS) throw new Error('WAZUH_PASS environment variable is not set');
     const basic = 'Basic ' + Buffer.from(`${WAZUH_USER}:${WAZUH_PASS}`).toString('base64');
     const { json } = await request('/security/user/authenticate', basic, 'POST');
     const token = (json as { data?: { token?: string } } | null)?.data?.token;

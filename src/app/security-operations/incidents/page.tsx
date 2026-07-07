@@ -13,6 +13,30 @@ type CtipStats = {
     last_collector_run: string | null;
 };
 
+type DisplayIncident = Incident & { level?: number; rawTimestamp?: string };
+
+interface RealIncident {
+    id: string;
+    severity: 'Critical' | 'High' | 'Medium' | 'Low';
+    name: string;
+    source: string;
+    asset: string;
+    status: string;
+    analyst: string;
+    slaTime: string;
+    mitre: string;
+    timestamp: string | null;
+    level: number;
+}
+
+interface IncidentKpis {
+    total: number;
+    critical: number;
+    investigating: number;
+    escalated: number;
+    avgSla: string;
+}
+
 const sevColor: Record<string, string> = {
     Critical: 'bg-red-50 text-red-600 border-red-200',
     High: 'bg-orange-50 text-orange-600 border-orange-200',
@@ -27,12 +51,71 @@ const statusColor: Record<string, string> = {
     Resolved: 'bg-emerald-50 text-emerald-600',
 };
 
+function parseSlaMinutes(sla: string): number {
+    const [h, m] = sla.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+}
+
+function formatDateTime(iso: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+}
+
+function normalizeReal(r: RealIncident): DisplayIncident {
+    const dateTime = formatDateTime(r.timestamp);
+    return {
+        id: r.id,
+        severity: r.severity,
+        name: r.name,
+        source: r.source,
+        asset: r.asset,
+        status: 'Open',
+        analyst: r.analyst,
+        sla: r.slaTime,
+        slaMinutes: parseSlaMinutes(r.slaTime),
+        mitre: r.mitre,
+        description: r.name,
+        affectedAssets: [r.asset],
+        timeline: [{ time: dateTime, event: r.name, source: r.source }],
+        suggestedActions: [
+            'Review alert details and correlate with related events',
+            'Verify source IP / agent activity for anomalies',
+            'Escalate if part of a broader attack pattern',
+            'Document findings and close if determined benign',
+        ],
+        created: dateTime,
+        level: r.level,
+        rawTimestamp: r.timestamp ?? undefined,
+    };
+}
+
+function SkeletonRow() {
+    return (
+        <tr className="border-b border-gray-100">
+            {Array.from({ length: 7 }).map((_, i) => (
+                <td key={i} className="px-4 py-3">
+                    <div className="h-3 bg-gray-100 rounded animate-pulse" style={{ width: `${50 + (i % 3) * 15}%` }} />
+                </td>
+            ))}
+        </tr>
+    );
+}
+
 export default function IncidentsPage() {
     const [search, setSearch] = useState('');
     const [sevFilter, setSevFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [expanded, setExpanded] = useState<string | null>(null);
     const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
+
+    const [loading, setLoading] = useState(true);
+    const [realIncidents, setRealIncidents] = useState<RealIncident[]>([]);
+    const [kpis, setKpis] = useState<IncidentKpis | null>(null);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats')
@@ -41,13 +124,37 @@ export default function IncidentsPage() {
             .catch(() => setCtipStats(null));
     }, []);
 
-    const filtered = INCIDENTS.filter(i => {
+    useEffect(() => {
+        fetch('/api/wazuh/incidents', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                if (Array.isArray(data?.incidents) && data.incidents.length > 0) {
+                    setRealIncidents(data.incidents);
+                }
+                if (data?.kpis) setKpis(data.kpis);
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, []);
+
+    const usingReal = realIncidents.length > 0;
+    const sourceIncidents: DisplayIncident[] = usingReal ? realIncidents.map(normalizeReal) : INCIDENTS;
+
+    const filtered = sourceIncidents.filter(i => {
         const q = search.toLowerCase();
         const matchQ = !q || i.name.toLowerCase().includes(q) || i.asset.toLowerCase().includes(q) || i.source.toLowerCase().includes(q);
         const matchSev = sevFilter === 'All' || i.severity === sevFilter;
         const matchStatus = statusFilter === 'All' || i.status === statusFilter;
         return matchQ && matchSev && matchStatus;
     });
+
+    const kpiValues = [
+        { label: 'Total Open', value: loading ? '...' : String(usingReal ? kpis?.total ?? INCIDENT_KPIS.totalOpen : INCIDENT_KPIS.totalOpen), color: 'text-red-600' },
+        { label: 'Investigating', value: loading ? '...' : String(usingReal ? kpis?.investigating ?? INCIDENT_KPIS.investigating : INCIDENT_KPIS.investigating), color: 'text-orange-600' },
+        { label: 'Escalated', value: loading ? '...' : String(usingReal ? kpis?.escalated ?? INCIDENT_KPIS.escalated : INCIDENT_KPIS.escalated), color: 'text-violet-600' },
+        { label: 'Contained', value: loading ? '...' : String(INCIDENT_KPIS.contained), color: 'text-blue-600' },
+        { label: 'Avg SLA Remaining', value: loading ? '...' : (usingReal ? kpis?.avgSla ?? `${INCIDENT_KPIS.avgSLA} mins` : `${INCIDENT_KPIS.avgSLA} mins`), color: 'text-emerald-600' },
+    ];
 
     return (
         <PageLayout title="Incident Queue">
@@ -82,13 +189,7 @@ export default function IncidentsPage() {
 
                 {/* KPIs */}
                 <div className="grid grid-cols-5 gap-3">
-                    {[
-                        { label: 'Total Open', value: INCIDENT_KPIS.totalOpen, color: 'text-red-600' },
-                        { label: 'Investigating', value: INCIDENT_KPIS.investigating, color: 'text-orange-600' },
-                        { label: 'Escalated', value: INCIDENT_KPIS.escalated, color: 'text-violet-600' },
-                        { label: 'Contained', value: INCIDENT_KPIS.contained, color: 'text-blue-600' },
-                        { label: 'Avg SLA Remaining', value: `${INCIDENT_KPIS.avgSLA} mins`, color: 'text-emerald-600' },
-                    ].map(k => (
+                    {kpiValues.map(k => (
                         <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-4 rounded-t-xl" />
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{k.label}</p>
@@ -109,7 +210,9 @@ export default function IncidentsPage() {
                             {(opts as string[]).map(o => <option key={o}>{o}</option>)}
                         </select>
                     ))}
-                    <span className="ml-auto text-[10px] text-gray-400">{filtered.length} incidents</span>
+                    <span className="ml-auto text-[10px] text-gray-400">
+                        {loading ? 'Loading…' : `${filtered.length} incidents${usingReal ? ' · live Wazuh data' : ''}`}
+                    </span>
                 </div>
 
                 {/* Table */}
@@ -125,34 +228,38 @@ export default function IncidentsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(inc => (
-                                    <>
-                                        <tr key={inc.id} onClick={() => setExpanded(expanded === inc.id ? null : inc.id)}
-                                            className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors">
-                                            <td className="px-4 py-3">
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${sevColor[inc.severity]}`}>{inc.severity}</span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <p className="font-semibold text-gray-800">{inc.name}</p>
-                                                <p className="text-[10px] text-gray-400">{inc.id}</p>
-                                            </td>
-                                            <td className="px-4 py-3 font-mono text-gray-500">{inc.source}</td>
-                                            <td className="px-4 py-3 font-mono text-gray-700">{inc.asset}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${statusColor[inc.status]}`}>{inc.status}</span>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-500">{inc.analyst}</td>
-                                            <td className={`px-4 py-3 font-mono font-bold ${inc.slaMinutes < 30 && inc.slaMinutes > 0 ? 'text-red-600' : 'text-gray-700'}`}>{inc.sla}</td>
-                                        </tr>
-                                        {expanded === inc.id && (
-                                            <tr key={`${inc.id}-detail`} className="border-b border-gray-200 bg-gray-50">
-                                                <td colSpan={7} className="px-6 py-4">
-                                                    <IncidentDetail inc={inc} />
+                                {loading ? (
+                                    Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
+                                ) : (
+                                    filtered.map(inc => (
+                                        <>
+                                            <tr key={inc.id} onClick={() => setExpanded(expanded === inc.id ? null : inc.id)}
+                                                className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${sevColor[inc.severity]}`}>{inc.severity}</span>
                                                 </td>
+                                                <td className="px-4 py-3">
+                                                    <p className="font-semibold text-gray-800">{inc.name}</p>
+                                                    <p className="text-[10px] text-gray-400">{inc.id}</p>
+                                                </td>
+                                                <td className="px-4 py-3 font-mono text-gray-500">{inc.source}</td>
+                                                <td className="px-4 py-3 font-mono text-gray-700">{inc.asset}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${statusColor[inc.status]}`}>{inc.status}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-500">{inc.analyst}</td>
+                                                <td className={`px-4 py-3 font-mono font-bold ${inc.slaMinutes < 30 && inc.slaMinutes > 0 ? 'text-red-600' : 'text-gray-700'}`}>{inc.sla}</td>
                                             </tr>
-                                        )}
-                                    </>
-                                ))}
+                                            {expanded === inc.id && (
+                                                <tr key={`${inc.id}-detail`} className="border-b border-gray-200 bg-gray-50">
+                                                    <td colSpan={7} className="px-6 py-4">
+                                                        <IncidentDetail inc={inc} />
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -162,7 +269,7 @@ export default function IncidentsPage() {
     );
 }
 
-function IncidentDetail({ inc }: { inc: Incident }) {
+function IncidentDetail({ inc }: { inc: DisplayIncident }) {
     return (
         <div className="grid grid-cols-3 gap-6">
             <div className="col-span-1">
@@ -180,6 +287,12 @@ function IncidentDetail({ inc }: { inc: Incident }) {
             <div>
                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Details</h4>
                 <div className="space-y-2 text-xs">
+                    {typeof inc.level === 'number' && (
+                        <div><span className="text-gray-400">Level:</span> <span className="text-gray-700 font-mono">Level {inc.level} — {inc.severity}</span></div>
+                    )}
+                    {inc.rawTimestamp && (
+                        <div><span className="text-gray-400">Detected:</span> <span className="text-gray-700 font-mono">{formatDateTime(inc.rawTimestamp)}</span></div>
+                    )}
                     <div><span className="text-gray-400">MITRE:</span> <span className="text-orange-600 font-mono">{inc.mitre}</span></div>
                     <div><span className="text-gray-400">Assets:</span> <span className="text-gray-700">{inc.affectedAssets.join(', ')}</span></div>
                     <div><span className="text-gray-400">Description:</span> <span className="text-gray-700">{inc.description}</span></div>
