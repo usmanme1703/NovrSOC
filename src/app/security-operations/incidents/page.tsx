@@ -32,6 +32,9 @@ interface RealIncident {
 interface IncidentKpis {
     total: number;
     critical: number;
+    high: number;
+    medium: number;
+    low: number;
     investigating: number;
     escalated: number;
     avgSla: string;
@@ -150,9 +153,9 @@ export default function IncidentsPage() {
 
     const kpiValues = [
         { label: 'Total Open', value: loading ? '...' : String(usingReal ? kpis?.total ?? INCIDENT_KPIS.totalOpen : INCIDENT_KPIS.totalOpen), color: 'text-red-600' },
-        { label: 'Investigating', value: loading ? '...' : String(usingReal ? kpis?.investigating ?? INCIDENT_KPIS.investigating : INCIDENT_KPIS.investigating), color: 'text-orange-600' },
-        { label: 'Escalated', value: loading ? '...' : String(usingReal ? kpis?.escalated ?? INCIDENT_KPIS.escalated : INCIDENT_KPIS.escalated), color: 'text-violet-600' },
-        { label: 'Contained', value: loading ? '...' : String(INCIDENT_KPIS.contained), color: 'text-blue-600' },
+        { label: 'High+', value: loading ? '...' : String(kpis?.high ?? '...'), color: 'text-orange-600' },
+        { label: 'Medium', value: loading ? '...' : String(kpis?.medium ?? '...'), color: 'text-violet-600' },
+        { label: 'Low', value: loading ? '...' : String(kpis?.low ?? '...'), color: 'text-blue-600' },
         { label: 'Avg SLA Remaining', value: loading ? '...' : (usingReal ? kpis?.avgSla ?? `${INCIDENT_KPIS.avgSLA} mins` : `${INCIDENT_KPIS.avgSLA} mins`), color: 'text-emerald-600' },
     ];
 
