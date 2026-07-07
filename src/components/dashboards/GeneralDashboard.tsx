@@ -415,7 +415,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         {
             label: 'Threats Blocked',
             value: ctipStats ? ctipStats.total_iocs.toLocaleString() : '...',
-            trend: ctipStats ? '+live' : '',
+            trend: ctipStats ? '+' + ctipStats.iocs_last_24h?.toLocaleString() + ' today' : '',
             type: 'orange' as const,
         },
         { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
@@ -428,14 +428,16 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
         },
     ];
 
-    const riskScoreValue = ctipStats
-        ? Math.min(100, ctipStats.exploitable_cves_this_week * 10 + ctipStats.active_campaigns * 5)
-        : null;
-
     const data = globalMetrics.general;
     const generalCards = Object.entries(data).map(([key, val]) => {
         if (key === 'totalAssets' && wazuhAgents) return { ...val, value: wazuhAgents.total.toLocaleString() };
-        if (key === 'riskScore' && riskScoreValue !== null) return { ...val, value: `${riskScoreValue}/100` };
+        if (key === 'activeThreats') return { ...val, value: String(ctipStats?.active_campaigns ?? '...') };
+        if (key === 'riskScore') {
+            const value = ctipStats
+                ? Math.min(100, (ctipStats.exploitable_cves_this_week * 10) + (ctipStats.active_campaigns * 5)) + '/100'
+                : '...';
+            return { ...val, value };
+        }
         if (key === 'criticalAlerts' && criticalAlertsCount !== null) return { ...val, value: String(criticalAlertsCount) };
         if (key === 'openIncidents' && openIncidentsCount !== null) return { ...val, value: String(openIncidentsCount) };
         return val;
