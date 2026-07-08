@@ -12,48 +12,19 @@ type CtipStats = {
     last_collector_run: string | null;
 };
 
-const ADVISORIES = [
-    {
-        id: 'CBN-CSIRT-2026-041', sev: 'Critical', title: 'BEC Campaign Targeting Nigerian Banks',
-        summary: 'Active Business Email Compromise campaign specifically targeting CFOs and finance teams at Nigerian banks and fintechs. Attackers are spoofing executive email addresses to initiate fraudulent wire transfers. Immediate awareness training and email authentication review required.',
-        sectors: ['Banking', 'Fintech'], published: 'Today', source: 'CBN-CSIRT', action: 'Immediate action required',
-    },
-    {
-        id: 'NGCERT-2026-089', sev: 'High', title: 'Ransomware Targeting Government Infrastructure',
-        summary: 'NGCERT has issued an advisory for active ransomware campaigns targeting Nigerian government ministries and agencies. Patch CVE-2024-3400 (PAN-OS) immediately. Attackers have been observed leveraging this vulnerability for initial access.',
-        sectors: ['Government'], published: 'Yesterday', source: 'NGCERT', action: 'Patch CVE-2024-3400 immediately',
-    },
-    {
-        id: 'NCC-CSIRT-2026-112', sev: 'High', title: 'Phishing Infrastructure Targeting Telecom Users',
-        summary: 'NCC-CSIRT has identified an active phishing campaign targeting customers of major Nigerian telecom operators. Fake "account suspension" emails are being sent en masse. User awareness recommended and domain monitoring should be enabled.',
-        sectors: ['Telecom'], published: '2 days ago', source: 'NCC-CSIRT', action: 'User awareness + domain monitoring',
-    },
-    {
-        id: 'CISA-2026-447', sev: 'Medium', title: 'Ivanti VPN Vulnerabilities — Multiple CVEs',
-        summary: 'CISA has added multiple Ivanti VPN vulnerabilities to the Known Exploited Vulnerabilities catalog. Affected products: Ivanti Connect Secure, Policy Secure. Apply available patches as soon as possible.',
-        sectors: ['All Sectors'], published: '3 days ago', source: 'CISA', action: 'Apply Ivanti patches',
-    },
-    {
-        id: 'NGCERT-2026-088', sev: 'High', title: 'Credential Stuffing Attacks on Nigerian Fintechs',
-        summary: 'Sustained credential stuffing attacks observed against Nigerian fintech platforms. Threat actors are using leaked credential databases. Enable MFA enforcement and anomalous login detection immediately.',
-        sectors: ['Fintech', 'Banking'], published: '4 days ago', source: 'NGCERT', action: 'Enforce MFA immediately',
-    },
-    {
-        id: 'CBN-CSIRT-2026-039', sev: 'Medium', title: 'ATM Skimming Devices Reported in Lagos',
-        summary: 'Physical ATM skimming devices reported at multiple ATM locations in Lagos. While primarily a physical threat, associated card data may be used for online fraud. Review fraud detection parameters.',
-        sectors: ['Banking'], published: '5 days ago', source: 'CBN-CSIRT', action: 'Review fraud detection systems',
-    },
-    {
-        id: 'NCC-CSIRT-2026-108', sev: 'Low', title: 'DNS Resolver Misconfiguration Advisory',
-        summary: 'Advisory for DNS resolver misconfigurations that could enable DNS amplification attacks. Ensure recursive DNS is not open to the internet. Review firewall rules.',
-        sectors: ['All Sectors'], published: '1 week ago', source: 'NCC-CSIRT', action: 'Review DNS configuration',
-    },
-    {
-        id: 'NGCERT-2026-081', sev: 'Medium', title: 'Mobile Banking App Security Notice',
-        summary: 'Multiple Nigerian banking app clones identified on third-party app stores. Customer education required. Enable certificate pinning in mobile apps and monitor for app store takedown opportunities.',
-        sectors: ['Banking', 'Fintech'], published: '1 week ago', source: 'NGCERT', action: 'Mobile app security review',
-    },
-];
+interface Advisory {
+    id: number;
+    title: string;
+    summary: string | null;
+    severity: string;
+    source: string | null;
+    sectors: string[] | null;
+    affected_products: string[] | null;
+    related_cves: string[] | null;
+    recommended_actions: string[] | null;
+    published_at: string;
+    created_by: string | null;
+}
 
 const SEV_STYLE: Record<string, string> = {
     Critical: 'border-l-red-600 bg-red-50',
@@ -67,9 +38,149 @@ const SEV_BADGE: Record<string, string> = {
     Medium: 'bg-amber-50 text-amber-600 border-amber-200',
     Low: 'bg-blue-50 text-blue-600 border-blue-200',
 };
+const SECTOR_OPTIONS = ['Banking', 'Telecom', 'Government', 'Oil & Gas', 'Healthcare', 'All Sectors'];
+
+function timeAgo(iso: string): string {
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+    if (mins < 60) return mins <= 1 ? 'Just now' : `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function SkeletonCard() {
+    return (
+        <div className="rounded-r-xl p-4 border border-gray-200 border-l-4 border-l-gray-200">
+            <div className="h-3 w-24 bg-gray-100 rounded animate-pulse mb-3" />
+            <div className="h-4 w-2/3 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-3 w-full bg-gray-100 rounded animate-pulse mb-1.5" />
+            <div className="h-3 w-4/5 bg-gray-100 rounded animate-pulse" />
+        </div>
+    );
+}
+
+function PublishModal({ onClose, onPublished }: { onClose: () => void; onPublished: (a: Advisory) => void }) {
+    const [title, setTitle] = useState('');
+    const [summary, setSummary] = useState('');
+    const [severity, setSeverity] = useState('Medium');
+    const [source, setSource] = useState('');
+    const [sectors, setSectors] = useState<string[]>([]);
+    const [affectedProducts, setAffectedProducts] = useState('');
+    const [recommendedActions, setRecommendedActions] = useState('');
+    const [relatedCves, setRelatedCves] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const toggleSector = (s: string) =>
+        setSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+
+    const submit = async () => {
+        if (!title.trim()) { setError('Title is required'); return; }
+        setSubmitting(true);
+        setError(null);
+        try {
+            const res = await fetch('/api/advisories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title,
+                    summary,
+                    severity,
+                    source,
+                    sectors,
+                    affected_products: affectedProducts.split(',').map(s => s.trim()).filter(Boolean),
+                    recommended_actions: recommendedActions.split('\n').map(s => s.trim()).filter(Boolean),
+                    related_cves: relatedCves.split(',').map(s => s.trim()).filter(Boolean),
+                    created_by: 'Admin User',
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error ?? 'Failed to publish');
+            onPublished(data.advisory);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to publish advisory');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+                <h3 className="text-sm font-black text-gray-900 mb-4">Publish Advisory</h3>
+                <div className="space-y-3">
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Title</label>
+                        <input value={title} onChange={e => setTitle(e.target.value)}
+                            className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-700/20" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Summary</label>
+                        <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={3}
+                            className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-700/20" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Severity</label>
+                            <select value={severity} onChange={e => setSeverity(e.target.value)}
+                                className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none">
+                                {['Critical', 'High', 'Medium', 'Low'].map(s => <option key={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Source</label>
+                            <input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. NGCERT"
+                                className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sectors</label>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                            {SECTOR_OPTIONS.map(s => (
+                                <button key={s} type="button" onClick={() => toggleSector(s)}
+                                    className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors ${
+                                        sectors.includes(s) ? 'bg-blue-700 text-white border-blue-700' : 'bg-white border-gray-200 text-gray-600'
+                                    }`}>
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Affected Products (comma-separated)</label>
+                        <input value={affectedProducts} onChange={e => setAffectedProducts(e.target.value)}
+                            className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recommended Actions (one per line)</label>
+                        <textarea value={recommendedActions} onChange={e => setRecommendedActions(e.target.value)} rows={3}
+                            className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Related CVEs (comma-separated)</label>
+                        <input value={relatedCves} onChange={e => setRelatedCves(e.target.value)} placeholder="CVE-2026-1234"
+                            className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none" />
+                    </div>
+                    {error && <p className="text-[11px] text-red-600">{error}</p>}
+                    <div className="flex gap-2 pt-2">
+                        <button onClick={onClose} className="flex-1 py-2 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg">Cancel</button>
+                        <button onClick={submit} disabled={submitting}
+                            className="flex-1 py-2 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors">
+                            {submitting ? 'Publishing…' : 'Publish'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function AdvisoryPage() {
     const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
+    const [advisories, setAdvisories] = useState<Advisory[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats')
@@ -78,10 +189,21 @@ export default function AdvisoryPage() {
             .catch(() => setCtipStats(null));
     }, []);
 
+    useEffect(() => {
+        fetch('/api/advisories', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setAdvisories(Array.isArray(data?.advisories) ? data.advisories : []))
+            .catch(() => setAdvisories([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const sevCounts = ['Critical', 'High', 'Medium', 'Low'].map(sev => ({
+        sev, count: advisories.filter(a => a.severity === sev).length,
+    })).filter(s => s.count > 0);
+
     return (
         <PageLayout title="Threat Advisory">
             <div className="space-y-4">
-                {/* Live Intel Banner — only rendered when CTIP responds with data */}
                 {ctipStats && ctipStats.total_iocs > 0 && (
                     <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center gap-3">
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -100,48 +222,86 @@ export default function AdvisoryPage() {
                     </div>
                 )}
 
-                <div>
-                    <h1 className="text-lg font-black text-gray-900">Threat Advisory</h1>
-                    <p className="text-xs text-gray-500">Threat Intelligence · Active advisories from Nigerian and global threat intelligence sources</p>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-lg font-black text-gray-900">Threat Advisory</h1>
+                        <p className="text-xs text-gray-500">Threat Intelligence · Advisories published by the Cybernovr SOC team</p>
+                    </div>
+                    {!loading && advisories.length > 0 && (
+                        <button onClick={() => setShowModal(true)}
+                            className="text-xs font-bold px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors whitespace-nowrap">
+                            + Publish Advisory
+                        </button>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {[['Critical', 1], ['High', 3], ['Medium', 3], ['Low', 1]].map(([s, n]) => (
-                        <div key={s} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold ${SEV_BADGE[String(s)]}`}>
-                            <span>{String(s)}</span><span className="font-black">{n}</span>
-                        </div>
-                    ))}
-                </div>
+                {!loading && sevCounts.length > 0 && (
+                    <div className="flex items-center gap-3">
+                        {sevCounts.map(({ sev, count }) => (
+                            <div key={sev} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold ${SEV_BADGE[sev]}`}>
+                                <span>{sev}</span><span className="font-black">{count}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                <div className="space-y-3">
-                    {ADVISORIES.map(a => (
-                        <div key={a.id} className={`border-l-4 ${SEV_STYLE[a.sev]} rounded-r-xl p-4 border border-gray-200 border-l-4`}>
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${SEV_BADGE[a.sev]}`}>{a.sev}</span>
-                                        <span className="text-[10px] font-mono text-gray-400">{a.id}</span>
-                                        <span className="text-[10px] text-gray-400">· {a.source}</span>
-                                        <span className="text-[10px] text-gray-400">· {a.published}</span>
-                                    </div>
-                                    <h3 className="text-sm font-black text-gray-900 mb-1">{a.title}</h3>
-                                    <p className="text-[11px] text-gray-600 leading-relaxed mb-2">{a.summary}</p>
-                                    <div className="flex items-center gap-3 flex-wrap">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase">Sectors:</span>
-                                            {a.sectors.map(s => <span key={s} className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>)}
+                {loading ? (
+                    <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+                    </div>
+                ) : advisories.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white border border-gray-200 rounded-xl">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-400 mb-4">
+                            <path d="M4 4h16v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 8h8M8 12h8M8 16h4" strokeLinecap="round" />
+                        </svg>
+                        <h3 className="text-sm font-bold text-gray-900 mb-1">No Advisories Published Yet</h3>
+                        <p className="text-xs text-gray-400 max-w-sm mb-4">
+                            The Cybernovr SOC team publishes advisories when new threats are identified. Check back soon.
+                        </p>
+                        <button onClick={() => setShowModal(true)}
+                            className="text-xs font-bold px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors">
+                            + Publish Advisory
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {advisories.map(a => (
+                            <div key={a.id} className={`border-l-4 ${SEV_STYLE[a.severity] ?? SEV_STYLE.Medium} rounded-r-xl p-4 border border-gray-200 border-l-4`}>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${SEV_BADGE[a.severity] ?? SEV_BADGE.Medium}`}>{a.severity}</span>
+                                            {a.source && <span className="text-[10px] text-gray-400">· {a.source}</span>}
+                                            <span className="text-[10px] text-gray-400">· {timeAgo(a.published_at)}</span>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[9px] font-bold text-blue-700">→ {a.action}</span>
+                                        <h3 className="text-sm font-black text-gray-900 mb-1">{a.title}</h3>
+                                        {a.summary && <p className="text-[11px] text-gray-600 leading-relaxed mb-2">{a.summary}</p>}
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            {a.sectors && a.sectors.length > 0 && (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-[9px] font-bold text-gray-400 uppercase">Sectors:</span>
+                                                    {a.sectors.map(s => <span key={s} className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>)}
+                                                </div>
+                                            )}
+                                            {a.recommended_actions && a.recommended_actions.length > 0 && (
+                                                <span className="text-[9px] font-bold text-blue-700">→ {a.recommended_actions[0]}</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                                <button className="flex-shrink-0 px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold rounded-lg transition-colors whitespace-nowrap">Read Full Advisory</button>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {showModal && (
+                <PublishModal
+                    onClose={() => setShowModal(false)}
+                    onPublished={(a) => { setAdvisories(prev => [a, ...prev]); setShowModal(false); }}
+                />
+            )}
         </PageLayout>
     );
 }
