@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const CTIP_URL = process.env.CTIP_API_URL || 'http://138.197.188.132:8001';
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://138.197.188.132:4000';
 const ABUSEIPDB_KEY = process.env.ABUSEIPDB_API_KEY;
+const URLHAUS_AUTH_KEY = process.env.URLHAUS_AUTH_KEY;
 
 interface SourceResult {
     name: string;
@@ -42,12 +43,15 @@ async function checkCtip(value: string): Promise<{ source: SourceResult; match: 
 }
 
 async function checkUrlhaus(value: string, type: string): Promise<{ source: SourceResult; threat: string | null; tags: string[] }> {
+    if (!URLHAUS_AUTH_KEY) {
+        return { source: { name: 'URLHaus', result: 'Error', detail: 'URLHAUS_AUTH_KEY not configured', verdict: 'Unknown' }, threat: null, tags: [] };
+    }
     try {
         const endpoint = type === 'url' ? 'url' : 'host';
         const param = type === 'url' ? 'url' : 'host';
         const res = await fetch(`https://urlhaus-api.abuse.ch/v1/${endpoint}/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Auth-Key': URLHAUS_AUTH_KEY },
             body: `${param}=${encodeURIComponent(value)}`,
         });
         const data = await res.json();
