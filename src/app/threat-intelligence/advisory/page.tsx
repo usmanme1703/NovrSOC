@@ -139,7 +139,7 @@ function PublishModal({ onClose, onPublished }: { onClose: () => void; onPublish
                         </div>
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Source</label>
-                            <input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. NGCERT"
+                            <input value={source} onChange={e => setSource(e.target.value)} placeholder="Internal source label"
                                 className="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none" />
                         </div>
                     </div>

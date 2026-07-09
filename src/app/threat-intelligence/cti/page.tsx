@@ -12,21 +12,6 @@ type CtipStats = {
     last_collector_run: string | null;
 };
 
-interface CtipIOC {
-    id: string;
-    ioc_type: string;
-    value: string;
-    source: string;
-    confidence: number;
-    malware_family: string | null;
-    threat_type: string | null;
-    country: string | null;
-    first_seen: string | null;
-    last_seen: string | null;
-    mitre_techniques: string[];
-    tags: string[];
-}
-
 interface FeedStatus {
     collector_name: string;
     status: string;
@@ -54,7 +39,6 @@ function iocVerdict(confidence: number): string {
     if (confidence >= 50) return 'Suspicious';
     return 'Clean';
 }
-const verdictColor: Record<string, string> = { Malicious: 'text-red-600', Suspicious: 'text-amber-600', Clean: 'text-emerald-600' };
 const verdictEmoji: Record<string, string> = { Malicious: '🔴', Suspicious: '🟠', Clean: '🟢' };
 
 function formatSeen(ts: string | null): string {
@@ -79,30 +63,17 @@ function feedDisplayName(collectorName: string, allFeeds: FeedStatus[]): string 
 
 export default function CTIPage() {
     const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
-    const [iocs, setIocs] = useState<CtipIOC[]>([]);
-    const [loadingFeed, setLoadingFeed] = useState(true);
     const [feeds, setFeeds] = useState<FeedStatus[]>([]);
 
     const [searchValue, setSearchValue] = useState('');
     const [searching, setSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<{ found: boolean; matches: SearchMatch[] } | null>(null);
 
-    const [typeFilter, setTypeFilter] = useState('All');
-    const [threatFilter, setThreatFilter] = useState('All');
-    const [minConfidence, setMinConfidence] = useState(0);
-    const [tableSearch, setTableSearch] = useState('');
-
     useEffect(() => {
         fetch('/api/threat-intel/stats')
             .then(r => r.ok ? r.json() : Promise.reject())
             .then((data: CtipStats) => setCtipStats(data))
             .catch(() => setCtipStats(null));
-
-        fetch('/api/threat-intel/iocs?limit=50')
-            .then(r => r.ok ? r.json() : Promise.reject())
-            .then((data: { items: CtipIOC[] }) => setIocs(Array.isArray(data.items) ? data.items : []))
-            .catch(() => setIocs([]))
-            .finally(() => setLoadingFeed(false));
 
         fetch('/api/ctip/feed-status')
             .then(r => r.json())
@@ -138,26 +109,12 @@ export default function CTIPage() {
         { label: 'Active Sources', value: '...', color: 'text-violet-600' },
     ];
 
-    const filteredIocs = iocs.filter(ioc => {
-        const matchType = typeFilter === 'All' || ioc.ioc_type.toLowerCase() === typeFilter.toLowerCase();
-        const t = (ioc.threat_type || '').toLowerCase();
-        const matchThreat = threatFilter === 'All' ||
-            (threatFilter === 'Malware' && t.includes('malware')) ||
-            (threatFilter === 'Phishing' && t.includes('phish')) ||
-            (threatFilter === 'C2' && (t.includes('c2') || t.includes('command'))) ||
-            (threatFilter === 'Botnet' && t.includes('botnet'));
-        const matchConfidence = ioc.confidence >= minConfidence;
-        const q = tableSearch.toLowerCase();
-        const matchSearch = !q || ioc.value.toLowerCase().includes(q) || ioc.source.toLowerCase().includes(q);
-        return matchType && matchThreat && matchConfidence && matchSearch;
-    });
-
     return (
         <PageLayout title="Threat Intelligence">
             <div className="space-y-5">
                 <div>
                     <h1 className="text-lg font-black text-gray-900">Threat Intelligence — CTI Dashboard</h1>
-                    <p className="text-xs text-gray-400">Threat Intelligence · Live IOC feeds and indicator search powered by CTIP</p>
+                    <p className="text-xs text-gray-400">Threat Intelligence · Indicator search and feed health, powered by CTIP</p>
                 </div>
 
                 {/* KPIs */}
@@ -203,7 +160,6 @@ export default function CTIPage() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-600">
                                         <span>Type: <span className="font-bold text-gray-800">{m.ioc_type}</span></span>
-                                        <span>Source: <span className="font-bold text-gray-800">{m.source}</span></span>
                                         <span>Confidence: <span className="font-bold text-gray-800">{m.confidence}%</span></span>
                                         <span>Country: <span className="font-bold text-gray-800">{m.country ?? 'Unknown'}</span></span>
                                         <span>Malware Family: <span className="font-bold text-gray-800">{m.malware_family ?? 'Unknown'}</span></span>
@@ -237,67 +193,6 @@ export default function CTIPage() {
                                 <p className="text-[11px] font-bold text-gray-700 mt-1">{f.records_pulled} pulled · {f.records_new} new</p>
                             </div>
                         ))
-                    )}
-                </div>
-
-                {/* Live IOC Feed */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
-                    <div className="p-4 pb-3 space-y-3">
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Live IOC Feed</p>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <input value={tableSearch} onChange={e => setTableSearch(e.target.value)} placeholder="Filter loaded results…"
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-[11px] text-gray-800 focus:outline-none w-48" />
-                            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 focus:outline-none">
-                                {['All', 'ip', 'domain', 'url', 'hash'].map(t => <option key={t}>{t}</option>)}
-                            </select>
-                            <select value={threatFilter} onChange={e => setThreatFilter(e.target.value)}
-                                className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-[11px] text-gray-700 focus:outline-none">
-                                {['All', 'Malware', 'Phishing', 'C2', 'Botnet'].map(t => <option key={t}>{t}</option>)}
-                            </select>
-                            <label className="flex items-center gap-2 text-[10px] text-gray-500">
-                                Min confidence: {minConfidence}%
-                                <input type="range" min={0} max={100} value={minConfidence} onChange={e => setMinConfidence(Number(e.target.value))} className="w-24" />
-                            </label>
-                        </div>
-                    </div>
-                    {loadingFeed ? (
-                        <div className="p-6 space-y-2">
-                            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}
-                        </div>
-                    ) : filteredIocs.length === 0 ? (
-                        <div className="py-12 text-center">
-                            <p className="text-xs text-gray-400">
-                                {iocs.length === 0 ? 'Intelligence feeds are initializing…' : 'No indicators match the current filters.'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                                <thead><tr className="border-b border-gray-200">
-                                    {['Type', 'Value', 'Country', 'Confidence', 'Threat Type', 'First Seen', 'Verdict'].map(h =>
-                                        <th key={h} className="text-left px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-                                    )}
-                                </tr></thead>
-                                <tbody>
-                                    {filteredIocs.map(ioc => {
-                                        const verdict = iocVerdict(ioc.confidence);
-                                        return (
-                                            <tr key={ioc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded">{ioc.ioc_type}</span></td>
-                                                <td className="px-4 py-2 font-mono text-gray-700 max-w-xs truncate">{ioc.value}</td>
-                                                <td className="px-4 py-2 text-gray-500">{ioc.country ?? '—'}</td>
-                                                <td className="px-4 py-2 text-gray-700 font-bold">{ioc.confidence}%</td>
-                                                <td className="px-4 py-2 text-gray-500">{ioc.threat_type ?? '—'}</td>
-                                                <td className="px-4 py-2 text-gray-400">{formatSeen(ioc.first_seen ?? ioc.last_seen)}</td>
-                                                <td className={`px-4 py-2 font-bold ${verdictColor[verdict]}`}>{verdictEmoji[verdict]} {verdict}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
                     )}
                 </div>
             </div>

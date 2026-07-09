@@ -135,11 +135,11 @@ const GlobalThreatMap = ({ ctipStats }: {
 
 /* ── 1B: Nigeria Threat Heatmap ── */
 const NIGERIA_FEED = [
-    { source: 'NCC-CSIRT', type: 'Phishing Campaign', sector: 'Banking', severity: 'Critical', time: '14 mins ago' },
-    { source: 'NGCERT', type: 'Ransomware Advisory', sector: 'Government', severity: 'High', time: '1 hr ago' },
-    { source: 'CBN-CSIRT', type: 'BEC Attack', sector: 'Financial', severity: 'Critical', time: '2 hrs ago' },
-    { source: 'NCC-CSIRT', type: 'DDoS Attempt', sector: 'Telecom', severity: 'Medium', time: '3 hrs ago' },
-    { source: 'NGCERT', type: 'Credential Stuffing', sector: 'Fintech', severity: 'High', time: '5 hrs ago' },
+    { source: 'National Threat Advisory', type: 'Phishing Campaign', sector: 'Banking', severity: 'Critical', time: '14 mins ago' },
+    { source: 'National Threat Advisory', type: 'Ransomware Advisory', sector: 'Government', severity: 'High', time: '1 hr ago' },
+    { source: 'Financial Sector Intelligence', type: 'BEC Attack', sector: 'Financial', severity: 'Critical', time: '2 hrs ago' },
+    { source: 'National Threat Advisory', type: 'DDoS Attempt', sector: 'Telecom', severity: 'Medium', time: '3 hrs ago' },
+    { source: 'National Threat Advisory', type: 'Credential Stuffing', sector: 'Fintech', severity: 'High', time: '5 hrs ago' },
 ];
 const INDUSTRIES = [
     { label: '🏦 Banking & Finance', pct: 38, color: '#dc2626' },
@@ -464,6 +464,7 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
 
     return (
         <div className="space-y-6">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider -mb-2">Aggregated across all onboarded clients</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
