@@ -169,7 +169,7 @@ export default function MitrePage() {
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Suggested Response</p>
                                 <ul className="space-y-1 text-xs text-gray-700">
                                     <li>• Review detection rules for {selected.id}</li>
-                                    <li>• Cross-reference with MISP threat feeds</li>
+                                    <li>• Cross-reference with Cybernovr Intelligence threat feeds</li>
                                     <li>• Check affected assets for lateral movement</li>
                                     <li>• Update SOAR playbook if applicable</li>
                                 </ul>

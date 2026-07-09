@@ -70,6 +70,13 @@ function feedDotColor(finishedAt: string | null): string {
     return 'bg-red-500';
 }
 
+function feedDisplayName(collectorName: string, allFeeds: FeedStatus[]): string {
+    const sortedNames = [...new Set(allFeeds.map(f => f.collector_name))].sort();
+    const index = sortedNames.indexOf(collectorName);
+    const letter = String.fromCharCode(65 + (index >= 0 ? index : 0));
+    return `Intelligence Feed ${letter}`;
+}
+
 export default function CTIPage() {
     const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
     const [iocs, setIocs] = useState<CtipIOC[]>([]);
@@ -224,7 +231,7 @@ export default function CTIPage() {
                                 <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-3 rounded-t-xl" />
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className={`w-2 h-2 rounded-full ${feedDotColor(f.finished_at)}`} />
-                                    <p className="text-xs font-black text-gray-800 capitalize">{f.collector_name}</p>
+                                    <p className="text-xs font-black text-gray-800">{feedDisplayName(f.collector_name, feeds)}</p>
                                 </div>
                                 <p className="text-[10px] text-gray-400">Last sync: {f.finished_at ? formatSeen(f.finished_at) : 'Never'}</p>
                                 <p className="text-[11px] font-bold text-gray-700 mt-1">{f.records_pulled} pulled · {f.records_new} new</p>
@@ -269,7 +276,7 @@ export default function CTIPage() {
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead><tr className="border-b border-gray-200">
-                                    {['Type', 'Value', 'Source', 'Country', 'Confidence', 'Threat Type', 'First Seen', 'Verdict'].map(h =>
+                                    {['Type', 'Value', 'Country', 'Confidence', 'Threat Type', 'First Seen', 'Verdict'].map(h =>
                                         <th key={h} className="text-left px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                                     )}
                                 </tr></thead>
@@ -280,7 +287,6 @@ export default function CTIPage() {
                                             <tr key={ioc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                                 <td className="px-4 py-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded">{ioc.ioc_type}</span></td>
                                                 <td className="px-4 py-2 font-mono text-gray-700 max-w-xs truncate">{ioc.value}</td>
-                                                <td className="px-4 py-2 text-gray-500">{ioc.source}</td>
                                                 <td className="px-4 py-2 text-gray-500">{ioc.country ?? '—'}</td>
                                                 <td className="px-4 py-2 text-gray-700 font-bold">{ioc.confidence}%</td>
                                                 <td className="px-4 py-2 text-gray-500">{ioc.threat_type ?? '—'}</td>

@@ -9,7 +9,6 @@ import { StatusBadge } from '../shared/StatusBadge';
 import { GaugeChart } from '../shared/GaugeChart';
 import { globalMetrics, generalActivityLog } from '@/data/mockData';
 import { FRAMEWORKS } from '@/lib/mock/compliance';
-import { CLIENTS } from '@/lib/mock/clients';
 
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
     <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm ${className}`}>
@@ -28,20 +27,7 @@ const SectionHeader = ({ title, badge }: { title: string; badge?: string }) => (
 );
 
 /* ── 1A: Global Threat Map ── */
-const ATTACK_ORIGINS_FALLBACK = [
-    { country: '🇨🇳 China',  x: 740, y: 160, count: '1,842', label: 'Ransomware',      color: '#dc2626', dashed: '8 4' },
-    { country: '🇷🇺 Russia', x: 580, y: 110, count: '1,204', label: 'APT/Nation-state', color: '#7c3aed', dashed: '6 3' },
-    { country: '🇧🇷 Brazil', x: 230, y: 290, count: '876',   label: 'Phishing',         color: '#ea580c', dashed: '5 4' },
-    { country: '🇺🇸 USA',    x: 100, y: 160, count: '654',   label: 'Brute Force',      color: '#ca8a04', dashed: '4 3' },
-    { country: '🇮🇳 India',  x: 680, y: 200, count: '412',   label: 'Phishing',         color: '#ea580c', dashed: '5 4' },
-];
-const ORIGIN_SLOTS = [
-    { x: 740, y: 160, color: '#dc2626', dashed: '8 4' },
-    { x: 580, y: 110, color: '#7c3aed', dashed: '6 3' },
-    { x: 230, y: 290, color: '#ea580c', dashed: '5 4' },
-    { x: 100, y: 160, color: '#ca8a04', dashed: '4 3' },
-    { x: 680, y: 200, color: '#ea580c', dashed: '5 4' },
-];
+interface AttackOrigin { country: string; x: number; y: number; count: string; label: string; color: string; dashed: string }
 const NIGERIA_X = 500, NIGERIA_Y = 240;
 
 const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] = [
@@ -50,19 +36,13 @@ const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] =
     { label: 'Ransomware Probing', pct: 18, color: '#ea580c' },
 ];
 
-const GlobalThreatMap = ({ ctipStats, countries }: {
+const GlobalThreatMap = ({ ctipStats }: {
     ctipStats: { total_iocs: number } | null;
-    countries: { country: string; name: string; count: number; flag: string }[] | null;
 }) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
-    const attackOrigins = countries && countries.length > 0
-        ? countries.slice(0, 5).map((c, i) => ({
-            country: `${c.flag} ${c.name}`,
-            count: c.count.toLocaleString(),
-            label: 'Live IOC Origin',
-            ...ORIGIN_SLOTS[i],
-        }))
-        : ATTACK_ORIGINS_FALLBACK;
+    // No real IP-to-country resolution exists yet for Wazuh alert source IPs,
+    // so arcs stay empty until that pipeline is built — never show placeholder countries.
+    const attackOrigins: AttackOrigin[] = [];
     return (
         <Card>
             <div className="p-4">
@@ -133,15 +113,21 @@ const GlobalThreatMap = ({ ctipStats, countries }: {
                     ))}
                 </div>
 
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                    {attackOrigins.map(o => (
-                        <div key={o.country} className="bg-white rounded-lg p-2 border border-slate-200 text-center">
-                            <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
-                            <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
-                            <p className="text-[9px] text-slate-500">{o.label}</p>
-                        </div>
-                    ))}
-                </div>
+                {attackOrigins.length > 0 ? (
+                    <div className="mt-3 grid grid-cols-5 gap-2">
+                        {attackOrigins.map(o => (
+                            <div key={o.country} className="bg-white rounded-lg p-2 border border-slate-200 text-center">
+                                <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
+                                <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
+                                <p className="text-[9px] text-slate-500">{o.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="mt-3 text-center py-3">
+                        <p className="text-[10px] text-slate-400">No active attack data</p>
+                    </div>
+                )}
             </div>
         </Card>
     );
@@ -261,6 +247,20 @@ const NigeriaThreatMap = () => {
 };
 
 /* ── 1C: Compliance Snapshot ── */
+const ComplianceCard = ({ f }: { f: { name: string; score: number; status: string } }) => (
+    <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center text-center hover:border-blue-200 transition-colors group shadow-sm">
+        <div className="relative mb-1">
+            <GaugeChart value={f.score} size={56} strokeWidth={6} />
+            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{f.score}%</span>
+        </div>
+        <p className="text-[9px] font-medium text-slate-600 mt-1 leading-tight">{f.name}</p>
+        <span className={`mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${f.status === 'Compliant' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+            {f.status}
+        </span>
+        <Link href="/compliance" className="mt-1.5 text-[8px] text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">Details →</Link>
+    </div>
+);
+
 const ComplianceSnapshot = () => (
     <Card>
         <div className="p-4">
@@ -268,39 +268,25 @@ const ComplianceSnapshot = () => (
                 <SectionHeader title="Compliance Snapshot" />
                 <Link href="/compliance" className="text-[10px] font-semibold text-blue-700 hover:underline">View All →</Link>
             </div>
-            <div className="grid grid-cols-4 lg:grid-cols-7 gap-3">
-                {FRAMEWORKS.map(f => (
-                    <div key={f.name} className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center text-center hover:border-blue-200 transition-colors group shadow-sm">
-                        <div className="relative mb-1">
-                            <GaugeChart value={f.score} size={56} strokeWidth={6} />
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{f.score}%</span>
-                        </div>
-                        <p className="text-[9px] font-medium text-slate-600 mt-1 leading-tight">{f.name}</p>
-                        <span className={`mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${f.status === 'Compliant' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                            {f.status}
-                        </span>
-                        <Link href="/compliance" className="mt-1.5 text-[8px] text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">Details →</Link>
-                    </div>
-                ))}
+            <div className="grid grid-cols-4 gap-3">
+                {FRAMEWORKS.slice(0, 4).map(f => <ComplianceCard key={f.name} f={f} />)}
+            </div>
+            <div className="grid grid-cols-3 gap-3 mt-3">
+                {FRAMEWORKS.slice(4).map(f => <ComplianceCard key={f.name} f={f} />)}
             </div>
         </div>
     </Card>
 );
 
 /* ── 1E: MSSP Client Portfolio ── */
-const clientStatusLabel = (c: { riskScore: number; activeIncidents: number }) =>
-    c.riskScore >= 80 ? { label: '🔴 Critical', cls: 'text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold' } :
-    c.activeIncidents >= 5 ? { label: '🟡 Attention', cls: 'text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-bold' } :
-    { label: '🟢 Healthy', cls: 'text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold' };
-
-const MSSPPanel = ({ role }: { role: string }) => {
+const MSSPPanel = ({ role, openIncidents, totalAssets }: { role: string; openIncidents: number | null; totalAssets: number | null }) => {
     if (role !== 'SOC Manager') return null;
     return (
         <Card>
             <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <SectionHeader title="MSSP Client Portfolio" badge="42 Active Clients" />
+                        <SectionHeader title="MSSP Client Portfolio" badge="1 Active Client" />
                         <p className="text-[10px] text-slate-500">Cross-tenant security posture overview</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -319,24 +305,20 @@ const MSSPPanel = ({ role }: { role: string }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {CLIENTS.slice(0, 5).map(c => {
-                                const st = clientStatusLabel(c);
-                                return (
-                                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="py-2 px-3 font-semibold text-slate-800">{c.icon} {c.name}</td>
-                                        <td className="py-2 px-3 text-slate-500">{c.industry}</td>
-                                        <td className="py-2 px-3">
-                                            <span className={`font-black ${c.riskScore >= 80 ? 'text-red-600' : c.riskScore >= 70 ? 'text-amber-600' : 'text-emerald-600'}`}>{c.riskScore}</span>
-                                        </td>
-                                        <td className="py-2 px-3 font-bold text-slate-700">{c.activeIncidents}</td>
-                                        <td className="py-2 px-3 text-slate-500">{c.agentsOnline.toLocaleString()}</td>
-                                        <td className="py-2 px-3"><span className={st.cls}>{st.label}</span></td>
-                                        <td className="py-2 px-3">
-                                            <Link href="/customers" className="text-[10px] font-bold text-blue-700 hover:underline">View →</Link>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                            <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                <td className="py-2 px-3 font-semibold text-slate-800">🛡️ Cybernovr</td>
+                                <td className="py-2 px-3 text-slate-500">Cybersecurity</td>
+                                <td className="py-2 px-3"><span className="font-black text-blue-700">Active</span></td>
+                                <td className="py-2 px-3 font-bold text-slate-700">{openIncidents ?? '...'}</td>
+                                <td className="py-2 px-3 text-slate-500">{totalAssets !== null ? totalAssets.toLocaleString() : '...'}</td>
+                                <td className="py-2 px-3"><span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">🟢 Active</span></td>
+                                <td className="py-2 px-3">
+                                    <Link href="/customers" className="text-[10px] font-bold text-blue-700 hover:underline">View →</Link>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colSpan={7} className="py-3 px-3 text-center text-[10px] text-slate-400">More clients coming soon</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -440,17 +422,6 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
-    const [countries, setCountries] = useState<{ country: string; name: string; count: number; flag: string }[] | null>(null);
-
-    useEffect(() => {
-        fetch('/api/ctip/countries', { cache: 'no-store' })
-            .then(r => r.json())
-            .then(data => {
-                if (Array.isArray(data) && data.length > 0) setCountries(data);
-            })
-            .catch(() => {});
-    }, []);
-
     const liveSystemMetrics = [
         {
             label: 'Threats Blocked',
@@ -497,14 +468,14 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            <GlobalThreatMap ctipStats={ctipStats} countries={countries} />
+            <GlobalThreatMap ctipStats={ctipStats} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <NigeriaThreatMap />
                 <ComplianceSnapshot />
             </div>
 
-            <MSSPPanel role={role} />
+            <MSSPPanel role={role} openIncidents={openIncidentsCount} totalAssets={wazuhAgents?.total ?? null} />
 
             <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
                 <div className="w-full h-full flex items-end gap-2 pt-4">

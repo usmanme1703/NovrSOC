@@ -9,7 +9,7 @@ const INTEGRATIONS = [
         status: 'Not Connected', connected: false,
     },
     {
-        name: 'MISP', icon: '🔗',
+        name: 'Cybernovr Intelligence', icon: '🔗',
         desc: 'Threat intelligence sharing platform for IOC collaboration.',
         status: 'Not Connected', connected: false,
     },

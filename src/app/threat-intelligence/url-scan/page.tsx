@@ -51,7 +51,15 @@ function formatWhen(iso: string): string {
     return new Date(iso).toLocaleString();
 }
 
-const SCAN_STEPS = ['Checking CTIP Database…', 'Checking URLHaus…', 'Checking AbuseIPDB…', 'Calculating verdict…'];
+const SCAN_STEPS = ['Checking CTIP Database…', 'Checking Intelligence Feed A…', 'Checking Intelligence Feed B…', 'Calculating verdict…'];
+
+const SOURCE_DISPLAY_NAMES: Record<string, string> = {
+    URLHaus: 'Intelligence Feed A',
+    AbuseIPDB: 'Intelligence Feed B',
+};
+function sanitizeSourceName(name: string): string {
+    return SOURCE_DISPLAY_NAMES[name] ?? name;
+}
 
 export default function URLScanPage() {
     const [value, setValue] = useState('');
@@ -114,7 +122,7 @@ export default function URLScanPage() {
             result.threat_type ? `Threat Type: ${result.threat_type}` : '',
             '',
             'Sources:',
-            ...result.sources.map(s => `  - ${s.name}: ${s.result} — ${s.detail} [${s.verdict}]`),
+            ...result.sources.map(s => `  - ${sanitizeSourceName(s.name)}: ${s.result} — ${s.detail} [${s.verdict}]`),
         ].filter(Boolean).join('\n');
         navigator.clipboard.writeText(lines).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
     };
@@ -126,7 +134,7 @@ export default function URLScanPage() {
             <div className="space-y-4">
                 <div>
                     <h1 className="text-lg font-black text-gray-900">URL Scan Suite</h1>
-                    <p className="text-xs text-gray-500">Threat Intelligence · Check a URL, IP, domain, or hash against CTIP, URLHaus, and AbuseIPDB</p>
+                    <p className="text-xs text-gray-500">Threat Intelligence · Check a URL, IP, domain, or hash against Cybernovr Intelligence</p>
                 </div>
 
                 {/* Scan bar */}
@@ -192,7 +200,7 @@ export default function URLScanPage() {
                                     <tbody>
                                         {result.sources.map(s => (
                                             <tr key={s.name} className="border-b border-gray-50">
-                                                <td className="px-3 py-2 font-bold text-gray-700 whitespace-nowrap">{s.name}</td>
+                                                <td className="px-3 py-2 font-bold text-gray-700 whitespace-nowrap">{sanitizeSourceName(s.name)}</td>
                                                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{s.result}</td>
                                                 <td className="px-3 py-2 text-gray-500">{s.detail}</td>
                                                 <td className="px-3 py-2">

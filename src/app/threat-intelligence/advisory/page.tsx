@@ -40,6 +40,15 @@ const SEV_BADGE: Record<string, string> = {
 };
 const SECTOR_OPTIONS = ['Banking', 'Telecom', 'Government', 'Oil & Gas', 'Healthcare', 'All Sectors'];
 
+function sourceDisplayName(source: string | null): string {
+    if (!source) return 'Cybernovr Threat Intelligence';
+    const s = source.toUpperCase();
+    if (s.includes('CBN')) return 'Financial Sector Intelligence';
+    if (s.includes('NGCERT') || s.includes('NCC')) return 'National Threat Advisory';
+    if (s.includes('CISA')) return 'Critical Infrastructure Alert';
+    return 'Cybernovr Threat Intelligence';
+}
+
 function timeAgo(iso: string): string {
     const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
     if (mins < 60) return mins <= 1 ? 'Just now' : `${mins} min ago`;
@@ -272,7 +281,7 @@ export default function AdvisoryPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${SEV_BADGE[a.severity] ?? SEV_BADGE.Medium}`}>{a.severity}</span>
-                                            {a.source && <span className="text-[10px] text-gray-400">· {a.source}</span>}
+                                            <span className="text-[10px] text-gray-400">· {sourceDisplayName(a.source)}</span>
                                             <span className="text-[10px] text-gray-400">· {timeAgo(a.published_at)}</span>
                                         </div>
                                         <h3 className="text-sm font-black text-gray-900 mb-1">{a.title}</h3>
