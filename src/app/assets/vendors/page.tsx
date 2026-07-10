@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { GaugeChart } from '@/components/shared/GaugeChart';
+import { getPortalContext } from '@/lib/portal-context';
 
 interface Assessment {
     id: number;
@@ -136,6 +137,7 @@ function Wizard({ existing, onClose, onSaved }: { existing?: Assessment; onClose
                     ...answers,
                     next_review_date: nextReview,
                     notes,
+                    ...(existing ? {} : { org_id: getPortalContext().orgId ?? undefined }),
                 }),
             });
             const data = await res.json();
@@ -335,7 +337,8 @@ export default function VendorsPage() {
 
     const load = () => {
         setLoading(true);
-        fetch('/api/vendor-assessments', { cache: 'no-store' })
+        const orgId = getPortalContext().orgId;
+        fetch(`/api/vendor-assessments${orgId ? `?org_id=${orgId}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => setAssessments(Array.isArray(data?.assessments) ? data.assessments : []))
             .catch(() => setAssessments([]))

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
 interface ScanSource {
     name: string;
@@ -73,7 +74,8 @@ export default function URLScanPage() {
     const [copied, setCopied] = useState(false);
 
     const loadHistory = () => {
-        fetch('/api/scan/history', { cache: 'no-store' })
+        const orgId = getPortalContext().orgId;
+        fetch(`/api/scan/history${orgId ? `?org_id=${orgId}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => setHistory(Array.isArray(data?.scans) ? data.scans : []))
             .catch(() => setHistory([]))
@@ -94,10 +96,11 @@ export default function URLScanPage() {
         }, 500);
 
         try {
+            const orgId = getPortalContext().orgId;
             const res = await fetch('/api/scan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ value: value.trim(), type: typeChoice }),
+                body: JSON.stringify({ value: value.trim(), type: typeChoice, ...(orgId ? { orgId } : {}) }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error ?? 'Scan failed');

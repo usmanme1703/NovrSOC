@@ -13,12 +13,16 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await runScan(value, body?.type ?? 'auto');
+        const orgId: number | null = typeof body?.orgId === 'number' ? body.orgId : null;
 
         // Best-effort persistence — never block the scan result on this.
         fetch(`${BACKEND_URL}/api/scan-history`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: result.value, type: result.type, verdict: result.verdict, confidence: result.confidence, scanned_by: 'Admin User', result_json: result }),
+            body: JSON.stringify({
+                value: result.value, type: result.type, verdict: result.verdict, confidence: result.confidence,
+                scanned_by: orgId ? 'Portal User' : 'Admin User', result_json: result, org_id: orgId,
+            }),
         }).catch(() => {});
 
         return NextResponse.json(result);

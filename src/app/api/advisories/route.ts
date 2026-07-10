@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://138.197.188.132:4000';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const res = await fetch(`${BACKEND_URL}/api/advisories`, { cache: 'no-store' });
+        const search = req.nextUrl.search;
+        const res = await fetch(`${BACKEND_URL}/api/advisories${search}`, { cache: 'no-store' });
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });
     } catch {

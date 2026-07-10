@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
+import { getAgentNamesForGroup } from '@/lib/wazuh-group';
 
 const INDEXER_HOST = process.env.WAZUH_INDEXER_HOST || '164.92.203.205';
 const INDEXER_PORT = Number(process.env.WAZUH_INDEXER_PORT || 9200);
@@ -34,7 +35,7 @@ function search(body: unknown): Promise<SearchResponse | null> {
                     'Content-Length': Buffer.byteLength(payload),
                 },
                 rejectUnauthorized: false,
-                timeout: 8000,
+                timeout: 15000,
             },
             (res) => {
                 let data = '';
@@ -55,32 +56,30 @@ function search(body: unknown): Promise<SearchResponse | null> {
     });
 }
 
-function countByLevel(minLevel: number) {
-    return search({
-        size: 0,
-        track_total_hits: true,
-        query: {
-            bool: {
-                must: [
-                    { range: { 'rule.level': { gte: minLevel } } },
-                    { range: { timestamp: { gte: 'now-24h' } } },
-                ],
-            },
-        },
-    });
+function countByLevel(minLevel: number, agentNames: string[] | null) {
+    const must: unknown[] = [
+        { range: { 'rule.level': { gte: minLevel } } },
+        { range: { timestamp: { gte: 'now-24h' } } },
+    ];
+    if (agentNames) must.push({ terms: { 'agent.name': agentNames } });
+    return search({ size: 0, track_total_hits: true, query: { bool: { must } } });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const [alertsRes, criticalRes, openRes] = await Promise.all([
+        const group = req.nextUrl.searchParams.get('group');
+        const agentNames = group ? await getAgentNamesForGroup(group) : null;
+
+        const [alertsRes, criticalRes, openRes] = await Promise.allSettled([
             search({
                 size: 10,
                 sort: [{ timestamp: { order: 'desc' } }],
+                ...(agentNames ? { query: { bool: { must: [{ terms: { 'agent.name': agentNames } }] } } } : {}),
                 _source: ['timestamp', 'rule.description', 'rule.level', 'agent.name', 'agent.ip', 'location'],
             }),
-            countByLevel(12),
-            countByLevel(7),
-        ]);
+            countByLevel(12, agentNames),
+            countByLevel(7, agentNames),
+        ]).then((results) => results.map((r) => (r.status === 'fulfilled' ? r.value : null)));
 
         const hits = (alertsRes?.hits?.hits ?? []).map((h) => h._source).filter(Boolean);
         const criticalCount = criticalRes?.hits?.total?.value ?? null;

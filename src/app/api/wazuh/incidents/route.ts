@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
+import { getAgentNamesForGroup } from '@/lib/wazuh-group';
 
 const INDEXER_HOST = process.env.WAZUH_INDEXER_HOST || '164.92.203.205';
 const INDEXER_PORT = Number(process.env.WAZUH_INDEXER_PORT || 9200);
@@ -40,7 +41,7 @@ function search(body: unknown): Promise<SearchResponse | null> {
                     'Content-Length': Buffer.byteLength(payload),
                 },
                 rejectUnauthorized: false,
-                timeout: 8000,
+                timeout: 15000,
             },
             (res) => {
                 let data = '';
@@ -69,51 +70,47 @@ function slaTimeFor(level: number): string {
     return level >= 12 ? '00:30:00' : level >= 7 ? '02:00:00' : '06:00:00';
 }
 
-function countInRange(minLevel: number, maxLevelExclusive?: number) {
+function countInRange(minLevel: number, maxLevelExclusive: number | undefined, agentNames: string[] | null) {
     const levelRange: { gte: number; lt?: number } = { gte: minLevel };
     if (maxLevelExclusive !== undefined) levelRange.lt = maxLevelExclusive;
-    return search({
-        size: 0,
-        track_total_hits: true,
-        query: {
-            bool: {
-                must: [
-                    { range: { 'rule.level': levelRange } },
-                    { range: { timestamp: { gte: 'now-7d' } } },
-                ],
-            },
-        },
-    });
+    const must: unknown[] = [
+        { range: { 'rule.level': levelRange } },
+        { range: { timestamp: { gte: 'now-7d' } } },
+    ];
+    if (agentNames) must.push({ terms: { 'agent.name': agentNames } });
+    return search({ size: 0, track_total_hits: true, query: { bool: { must } } });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const [alertsRes, criticalRes, highRes, mediumRes, lowRes] = await Promise.all([
+        const group = req.nextUrl.searchParams.get('group');
+        const agentNames = group ? await getAgentNamesForGroup(group) : null;
+
+        const mainMust: unknown[] = [
+            { range: { 'rule.level': { gte: 3 } } },
+            { range: { timestamp: { gte: 'now-7d' } } },
+        ];
+        if (agentNames) mainMust.push({ terms: { 'agent.name': agentNames } });
+
+        const [alertsRes, criticalRes, highRes, mediumRes, lowRes] = await Promise.allSettled([
             search({
                 size: 20,
                 sort: [
                     { 'rule.level': { order: 'desc' } },
                     { timestamp: { order: 'desc' } },
                 ],
-                query: {
-                    bool: {
-                        must: [
-                            { range: { 'rule.level': { gte: 3 } } },
-                            { range: { timestamp: { gte: 'now-7d' } } },
-                        ],
-                    },
-                },
+                query: { bool: { must: mainMust } },
                 _source: [
                     'timestamp', 'rule.description', 'rule.level',
                     'rule.groups', 'agent.name', 'agent.ip',
                     'location', 'data.srcip', 'rule.mitre.technique',
                 ],
             }),
-            countInRange(12),
-            countInRange(10, 12),
-            countInRange(7, 10),
-            countInRange(3, 7),
-        ]);
+            countInRange(12, undefined, agentNames),
+            countInRange(10, 12, agentNames),
+            countInRange(7, 10, agentNames),
+            countInRange(3, 7, agentNames),
+        ]).then((results) => results.map((r) => (r.status === 'fulfilled' ? r.value : null)));
 
         const rawHits = alertsRes?.hits?.hits ?? [];
         const incidents = rawHits.map((h) => {

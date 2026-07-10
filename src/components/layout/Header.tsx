@@ -1,16 +1,35 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { getPortalContext, type PortalContext } from '@/lib/portal-context';
+import { portalSignOut } from '@/lib/portal-auth';
+
 interface HeaderProps {
     currentDashboard: string;
 }
 
+const NOT_PORTAL: PortalContext = { isPortal: false, orgId: null, orgName: null, orgIndustry: null, wazuhGroup: null, portalRole: null };
+
 export const Header = ({ currentDashboard }: HeaderProps) => {
+    const [portal, setPortal] = useState<PortalContext>(NOT_PORTAL);
+
+    useEffect(() => {
+        setPortal(getPortalContext());
+    }, []);
+
     return (
         <header className="h-[64px] bg-white border-b border-slate-200 sticky top-0 px-6 flex items-center justify-between z-20 shadow-sm">
 
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-                <span className="font-black text-slate-900 text-sm tracking-tight">NovrSOC</span>
+                {portal.isPortal ? (
+                    <>
+                        <span className="font-black text-slate-900 text-sm tracking-tight truncate">{portal.orgName}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full flex-shrink-0">Portal</span>
+                    </>
+                ) : (
+                    <span className="font-black text-slate-900 text-sm tracking-tight">NovrSOC</span>
+                )}
                 <span className="text-slate-300 select-none">/</span>
                 <span className="text-xs font-semibold text-slate-500 truncate">{currentDashboard}</span>
             </div>
@@ -37,9 +56,16 @@ export const Header = ({ currentDashboard }: HeaderProps) => {
                 <span className="text-[10px] font-bold bg-[#16a34a] text-white px-2.5 py-1 rounded-full">
                     Telemetry Online
                 </span>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1d4ed8] to-[#7c3aed] flex items-center justify-center cursor-pointer flex-shrink-0">
-                    <span className="text-[10px] font-black text-white">MA</span>
-                </div>
+                {portal.isPortal ? (
+                    <button onClick={portalSignOut}
+                        className="text-[10px] font-bold text-slate-500 hover:text-red-600 border border-slate-200 rounded-lg px-3 py-1.5 transition-colors">
+                        Sign Out
+                    </button>
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1d4ed8] to-[#7c3aed] flex items-center justify-center cursor-pointer flex-shrink-0">
+                        <span className="text-[10px] font-black text-white">MA</span>
+                    </div>
+                )}
             </div>
         </header>
     );

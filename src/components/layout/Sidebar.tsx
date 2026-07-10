@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getPortalContext, type PortalContext } from '@/lib/portal-context';
+
+const PORTAL_HIDDEN_GROUPS = ['Customers', 'Administration'];
 
 const NAV = [
     {
@@ -84,9 +87,19 @@ const NAV = [
     },
 ];
 
+const NOT_PORTAL: PortalContext = { isPortal: false, orgId: null, orgName: null, orgIndustry: null, wazuhGroup: null, portalRole: null };
+
 export const Sidebar = () => {
     const pathname = usePathname();
-    const defaultOpen = NAV.find(g =>
+    const [portal, setPortal] = useState<PortalContext>(NOT_PORTAL);
+
+    useEffect(() => {
+        setPortal(getPortalContext());
+    }, []);
+
+    const nav = portal.isPortal ? NAV.filter(g => !PORTAL_HIDDEN_GROUPS.includes(g.group)) : NAV;
+
+    const defaultOpen = nav.find(g =>
         g.items.some(i => i.href !== '/' && pathname.startsWith(i.href)) ||
         (pathname === '/' && g.group === 'Dashboard')
     )?.group ?? 'Dashboard';
@@ -99,14 +112,18 @@ export const Sidebar = () => {
             <div className="h-[64px] border-b border-slate-200 px-4 flex items-center gap-3 flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/novrsoc.png" alt="NovrSOC" width={32} height={32} className="object-contain flex-shrink-0" />
-                <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
-                    MSSP
-                </span>
+                {portal.isPortal ? (
+                    <span className="text-[11px] font-black text-slate-800 truncate">{portal.orgName}</span>
+                ) : (
+                    <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
+                        MSSP
+                    </span>
+                )}
             </div>
 
             {/* Nav */}
             <nav className="flex-1 overflow-y-auto p-2 scrollbar-thin space-y-0.5">
-                {NAV.map((navGroup) => {
+                {nav.map((navGroup) => {
                     const isOpen = openGroup === navGroup.group;
                     const isActive = navGroup.items.some(i =>
                         i.href === '/' ? pathname === '/' : pathname.startsWith(i.href)

@@ -9,6 +9,7 @@ import { StatusBadge } from '../shared/StatusBadge';
 import { GaugeChart } from '../shared/GaugeChart';
 import { globalMetrics, generalActivityLog } from '@/data/mockData';
 import { FRAMEWORKS } from '@/lib/mock/compliance';
+import { getPortalContext } from '@/lib/portal-context';
 
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
     <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm ${className}`}>
@@ -347,7 +348,8 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
     }, []);
 
     useEffect(() => {
-        fetch('/api/wazuh/agents', { cache: 'no-store' })
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/agents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 const conn = data?.data?.connection;
@@ -361,7 +363,8 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
     const [openIncidentsCount, setOpenIncidentsCount] = useState<number | null>(null);
 
     useEffect(() => {
-        fetch('/api/wazuh/alerts-indexer', { cache: 'no-store' })
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/alerts-indexer${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 const hits = data?.hits;

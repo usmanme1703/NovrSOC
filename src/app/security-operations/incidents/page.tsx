@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
 type CtipStats = {
     total_iocs: number;
@@ -118,7 +119,8 @@ export default function IncidentsPage() {
     }, []);
 
     useEffect(() => {
-        fetch('/api/wazuh/incidents', { cache: 'no-store' })
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/incidents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 if (Array.isArray(data?.incidents)) setIncidents(data.incidents);

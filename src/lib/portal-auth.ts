@@ -7,6 +7,7 @@ export interface PortalUser {
     orgIndustry: string | null;
     orgPlan: string | null;
     portalRole: string;
+    wazuhGroup: string | null;
 }
 
 const TOKEN_KEY = 'portal_token';

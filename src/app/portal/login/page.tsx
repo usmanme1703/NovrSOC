@@ -27,7 +27,7 @@ export default function PortalLoginPage() {
                 return;
             }
             setPortalSession(data.token, data.user);
-            router.push('/portal/dashboard');
+            router.push('/');
         } catch {
             setError('Invalid credentials. Contact your security team.');
         } finally {

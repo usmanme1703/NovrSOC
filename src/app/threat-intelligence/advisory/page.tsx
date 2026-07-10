@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
 type CtipStats = {
     total_iocs: number;
@@ -199,7 +200,8 @@ export default function AdvisoryPage() {
     }, []);
 
     useEffect(() => {
-        fetch('/api/advisories', { cache: 'no-store' })
+        const industry = getPortalContext().orgIndustry;
+        fetch(`/api/advisories${industry ? `?industry=${encodeURIComponent(industry)}` : ''}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => setAdvisories(Array.isArray(data?.advisories) ? data.advisories : []))
             .catch(() => setAdvisories([]))
