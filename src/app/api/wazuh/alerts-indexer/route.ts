@@ -69,12 +69,17 @@ export async function GET(req: NextRequest) {
     try {
         const group = req.nextUrl.searchParams.get('group');
         const agentNames = group ? await getAgentNamesForGroup(group) : null;
+        const minLevelParam = req.nextUrl.searchParams.get('minLevel');
+        const minLevel = minLevelParam !== null ? Number(minLevelParam) : 7;
+
+        const hitsMust: unknown[] = [{ range: { 'rule.level': { gte: minLevel } } }];
+        if (agentNames) hitsMust.push({ terms: { 'agent.name': agentNames } });
 
         const [alertsRes, criticalRes, openRes] = await Promise.allSettled([
             search({
                 size: 10,
                 sort: [{ timestamp: { order: 'desc' } }],
-                ...(agentNames ? { query: { bool: { must: [{ terms: { 'agent.name': agentNames } }] } } } : {}),
+                query: { bool: { must: hitsMust } },
                 _source: ['timestamp', 'rule.description', 'rule.level', 'agent.name', 'agent.ip', 'location'],
             }),
             countByLevel(12, agentNames),

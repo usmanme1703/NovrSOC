@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { DashboardSelector } from '@/components/layout/DashboardSelector';
 import { RightRail } from '@/components/layout/RightRail';
 import { getPortalContext } from '@/lib/portal-context';
+import { isAdminAuthenticated } from '@/lib/admin-auth';
 
 import { GeneralDashboard } from '@/components/dashboards/GeneralDashboard';
 import { PortalDashboard } from '@/components/dashboards/PortalDashboard';
@@ -22,12 +24,20 @@ import {
 } from '@/components/dashboards/PlatformDashboards';
 
 export default function Home() {
+  const router = useRouter();
   const [activeDashboard, setActiveDashboard] = useState<string>('General');
   const [isPortal, setIsPortal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    setIsPortal(getPortalContext().isPortal);
-  }, []);
+    const portal = getPortalContext();
+    if (!portal.isPortal && !isAdminAuthenticated()) {
+      router.replace('/login');
+      return;
+    }
+    setIsPortal(portal.isPortal);
+    setAuthChecked(true);
+  }, [router]);
 
   const renderDashboard = () => {
     switch (activeDashboard) {
@@ -43,6 +53,8 @@ export default function Home() {
       default:                       return <GeneralDashboard />;
     }
   };
+
+  if (!authChecked) return null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 flex font-sans antialiased">

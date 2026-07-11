@@ -338,7 +338,7 @@ export const GeneralDashboard = () => {
             .then(r => r.json())
             .then(data => {
                 const hits = data?.hits;
-                if (Array.isArray(hits) && hits.length > 0) {
+                if (Array.isArray(hits)) {
                     setWazuhAlerts(hits.map((a: { timestamp?: string; rule?: { description?: string; level?: number }; agent?: { name?: string } }) => {
                         const level = a.rule?.level ?? 0;
                         return {
@@ -349,11 +349,13 @@ export const GeneralDashboard = () => {
                             status: 'Active',
                         };
                     }));
+                } else {
+                    setWazuhAlerts([]);
                 }
                 if (typeof data?.criticalCount === 'number') setCriticalAlertsCount(data.criticalCount);
                 if (typeof data?.openIncidentsCount === 'number') setOpenIncidentsCount(data.openIncidentsCount);
             })
-            .catch(() => {});
+            .catch(() => setWazuhAlerts([]));
     }, []);
 
     const [threatVectors, setThreatVectors] = useState<{ label: string; pct: number; color: string }[] | null>(null);
@@ -453,9 +455,12 @@ export const GeneralDashboard = () => {
         if (key === 'totalAssets' && wazuhAgents) return { ...val, value: wazuhAgents.total.toLocaleString() };
         if (key === 'activeThreats') return { ...val, value: String(ctipStats?.active_campaigns ?? '...') };
         if (key === 'riskScore') {
-            const value = ctipStats
-                ? Math.min(100, (ctipStats.exploitable_cves_this_week * 10) + (ctipStats.active_campaigns * 5)) + '/100'
-                : '...';
+            const hasClients = (clients?.length ?? 0) > 0;
+            const value = !hasClients
+                ? '0/100'
+                : ctipStats
+                    ? Math.min(100, (ctipStats.exploitable_cves_this_week * 10) + (ctipStats.active_campaigns * 5)) + '/100'
+                    : '...';
             return { ...val, value };
         }
         if (key === 'criticalAlerts' && criticalAlertsCount !== null) return { ...val, value: String(criticalAlertsCount) };
@@ -520,20 +525,28 @@ export const GeneralDashboard = () => {
                 </div>
             </div>
 
-            <DataTable
-                title="Real-Time Global Activity Feed"
-                columns={['Time', 'Telemetry Event Details', 'Severity', 'Ingestion Source', 'Status']}
-                data={wazuhAlerts ?? generalActivityLog}
-                renderRow={(row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                        <td className="px-6 py-4 font-mono text-xs text-slate-500">{row.time}</td>
-                        <td className="px-6 py-4 font-semibold text-xs text-slate-800">{row.event}</td>
-                        <td className="px-6 py-4"><StatusBadge value={row.severity} /></td>
-                        <td className="px-6 py-4 text-xs font-mono text-slate-500">{row.source}</td>
-                        <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
-                    </tr>
-                )}
-            />
+            {wazuhAlerts !== null && wazuhAlerts.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-10 text-center">
+                    <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        No recent high-severity activity. Onboard clients to begin monitoring their environments.
+                    </p>
+                </div>
+            ) : (
+                <DataTable
+                    title="Real-Time Global Activity Feed"
+                    columns={['Time', 'Telemetry Event Details', 'Severity', 'Ingestion Source', 'Status']}
+                    data={wazuhAlerts ?? []}
+                    renderRow={(row, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                            <td className="px-6 py-4 font-mono text-xs text-slate-500">{row.time}</td>
+                            <td className="px-6 py-4 font-semibold text-xs text-slate-800">{row.event}</td>
+                            <td className="px-6 py-4"><StatusBadge value={row.severity} /></td>
+                            <td className="px-6 py-4 text-xs font-mono text-slate-500">{row.source}</td>
+                            <td className="px-6 py-4"><StatusBadge value={row.status} /></td>
+                        </tr>
+                    )}
+                />
+            )}
         </div>
     );
 };

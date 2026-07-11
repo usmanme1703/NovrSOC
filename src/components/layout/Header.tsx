@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getPortalContext, type PortalContext } from '@/lib/portal-context';
 import { portalSignOut } from '@/lib/portal-auth';
+import { isAdminAuthenticated, adminSignOut } from '@/lib/admin-auth';
 
 interface HeaderProps {
     currentDashboard: string;
@@ -12,10 +13,14 @@ const NOT_PORTAL: PortalContext = { isPortal: false, orgId: null, orgName: null,
 
 export const Header = ({ currentDashboard }: HeaderProps) => {
     const [portal, setPortal] = useState<PortalContext>(NOT_PORTAL);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         setPortal(getPortalContext());
+        setIsAdmin(isAdminAuthenticated());
     }, []);
+
+    const signOut = portal.isPortal ? portalSignOut : adminSignOut;
 
     return (
         <header className="h-[64px] bg-white border-b border-slate-200 sticky top-0 px-6 flex items-center justify-between z-20 shadow-sm">
@@ -56,8 +61,8 @@ export const Header = ({ currentDashboard }: HeaderProps) => {
                 <span className="text-[10px] font-bold bg-[#16a34a] text-white px-2.5 py-1 rounded-full">
                     Telemetry Online
                 </span>
-                {portal.isPortal ? (
-                    <button onClick={portalSignOut}
+                {portal.isPortal || isAdmin ? (
+                    <button onClick={signOut}
                         className="text-[10px] font-bold text-slate-500 hover:text-red-600 border border-slate-200 rounded-lg px-3 py-1.5 transition-colors">
                         Sign Out
                     </button>

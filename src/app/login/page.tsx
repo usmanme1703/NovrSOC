@@ -9,11 +9,30 @@ export default function AdminLoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const submit = (e: React.FormEvent) => {
+    const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
-        router.push('/');
+        setError(null);
+        try {
+            const res = await fetch('/api/auth/signin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.token) {
+                setError('Invalid credentials');
+                return;
+            }
+            localStorage.setItem('admin_token', data.token);
+            router.push('/');
+        } catch {
+            setError('Invalid credentials');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -40,6 +59,7 @@ export default function AdminLoginPage() {
                         <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700" />
                     </div>
+                    {error && <p className="text-xs text-red-600 text-center">{error}</p>}
                     <button type="submit" disabled={submitting}
                         className="w-full py-2.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-colors">
                         {submitting ? 'Signing In…' : 'Sign In'}

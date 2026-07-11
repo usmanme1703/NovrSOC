@@ -117,8 +117,15 @@ export const Sidebar = () => {
 
             {/* Brand */}
             <div className="h-[64px] border-b border-slate-200 px-4 flex items-center gap-3 flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/novrsoc.png" alt="NovrSOC" width={32} height={32} className="object-contain flex-shrink-0" />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/novrsoc.png"
+                        alt="NovrSOC"
+                        className="h-8 w-auto object-contain"
+                        style={{ maxWidth: '120px' }}
+                    />
+                </div>
                 {portal.isPortal ? (
                     <div className="min-w-0">
                         <span className="block text-[11px] font-black text-slate-800 truncate">{portal.orgName}</span>
