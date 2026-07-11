@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
 type CtipStats = {
     total_iocs: number;
@@ -64,10 +65,15 @@ function feedDisplayName(collectorName: string, allFeeds: FeedStatus[]): string 
 export default function CTIPage() {
     const [ctipStats, setCtipStats] = useState<CtipStats | null>(null);
     const [feeds, setFeeds] = useState<FeedStatus[]>([]);
+    const [isPortal, setIsPortal] = useState(false);
 
     const [searchValue, setSearchValue] = useState('');
     const [searching, setSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<{ found: boolean; matches: SearchMatch[] } | null>(null);
+
+    useEffect(() => {
+        setIsPortal(getPortalContext().isPortal);
+    }, []);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats')
@@ -175,26 +181,28 @@ export default function CTIPage() {
                     </div>
                 </div>
 
-                {/* Feed Status */}
-                <div className="grid grid-cols-4 gap-3">
-                    {feeds.length === 0 ? (
-                        Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-20 animate-pulse" />
-                        ))
-                    ) : (
-                        feeds.map(f => (
-                            <div key={f.collector_name} className="bg-white border border-gray-200 rounded-xl p-4">
-                                <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-3 rounded-t-xl" />
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className={`w-2 h-2 rounded-full ${feedDotColor(f.finished_at)}`} />
-                                    <p className="text-xs font-black text-gray-800">{feedDisplayName(f.collector_name, feeds)}</p>
+                {/* Feed Status — operator-only info, hidden in the client portal */}
+                {!isPortal && (
+                    <div className="grid grid-cols-4 gap-3">
+                        {feeds.length === 0 ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 h-20 animate-pulse" />
+                            ))
+                        ) : (
+                            feeds.map(f => (
+                                <div key={f.collector_name} className="bg-white border border-gray-200 rounded-xl p-4">
+                                    <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-3 rounded-t-xl" />
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className={`w-2 h-2 rounded-full ${feedDotColor(f.finished_at)}`} />
+                                        <p className="text-xs font-black text-gray-800">{feedDisplayName(f.collector_name, feeds)}</p>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400">Last sync: {f.finished_at ? formatSeen(f.finished_at) : 'Never'}</p>
+                                    <p className="text-[11px] font-bold text-gray-700 mt-1">{f.records_pulled} pulled · {f.records_new} new</p>
                                 </div>
-                                <p className="text-[10px] text-gray-400">Last sync: {f.finished_at ? formatSeen(f.finished_at) : 'Never'}</p>
-                                <p className="text-[11px] font-bold text-gray-700 mt-1">{f.records_pulled} pulled · {f.records_new} new</p>
-                            </div>
-                        ))
-                    )}
-                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
         </PageLayout>
     );

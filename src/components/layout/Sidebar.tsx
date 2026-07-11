@@ -5,7 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getPortalContext, type PortalContext } from '@/lib/portal-context';
 
-const PORTAL_HIDDEN_GROUPS = ['Customers', 'Administration'];
+const PORTAL_NAV = [
+    { group: 'Dashboard', icon: '🏠', items: [{ label: 'Dashboard', href: '/' }] },
+    { group: 'Incidents', icon: '⚔️', items: [{ label: 'Incidents', href: '/security-operations/incidents' }] },
+    { group: 'Threat Advisory', icon: '📢', items: [{ label: 'Threat Advisory', href: '/threat-intelligence/advisory' }] },
+    { group: 'Threat Management', icon: '🛰️', items: [{ label: 'Threat Management', href: '/threat-intelligence/threats' }] },
+    { group: 'CTI Feed', icon: '📡', items: [{ label: 'CTI Feed', href: '/threat-intelligence/cti' }] },
+    { group: 'URL Scanner', icon: '🔍', items: [{ label: 'URL Scanner', href: '/threat-intelligence/url-scan' }] },
+];
 
 const NAV = [
     {
@@ -97,7 +104,7 @@ export const Sidebar = () => {
         setPortal(getPortalContext());
     }, []);
 
-    const nav = portal.isPortal ? NAV.filter(g => !PORTAL_HIDDEN_GROUPS.includes(g.group)) : NAV;
+    const nav = portal.isPortal ? PORTAL_NAV : NAV;
 
     const defaultOpen = nav.find(g =>
         g.items.some(i => i.href !== '/' && pathname.startsWith(i.href)) ||
@@ -113,7 +120,12 @@ export const Sidebar = () => {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/novrsoc.png" alt="NovrSOC" width={32} height={32} className="object-contain flex-shrink-0" />
                 {portal.isPortal ? (
-                    <span className="text-[11px] font-black text-slate-800 truncate">{portal.orgName}</span>
+                    <div className="min-w-0">
+                        <span className="block text-[11px] font-black text-slate-800 truncate">{portal.orgName}</span>
+                        <span className="inline-block mt-0.5 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded leading-none">
+                            Client Portal
+                        </span>
+                    </div>
                 ) : (
                     <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#1d4ed8] text-white rounded leading-none flex-shrink-0">
                         MSSP

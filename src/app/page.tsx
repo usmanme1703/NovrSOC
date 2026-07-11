@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { DashboardSelector } from '@/components/layout/DashboardSelector';
 import { RightRail } from '@/components/layout/RightRail';
+import { getPortalContext } from '@/lib/portal-context';
 
 import { GeneralDashboard } from '@/components/dashboards/GeneralDashboard';
+import { PortalDashboard } from '@/components/dashboards/PortalDashboard';
 import { ExecutiveDashboard } from '@/components/dashboards/ExecutiveDashboard';
 import { ManagerDashboard } from '@/components/dashboards/ManagerDashboard';
 import { AnalystDashboard } from '@/components/dashboards/AnalystDashboard';
@@ -21,6 +23,11 @@ import {
 
 export default function Home() {
   const [activeDashboard, setActiveDashboard] = useState<string>('General');
+  const [isPortal, setIsPortal] = useState(false);
+
+  useEffect(() => {
+    setIsPortal(getPortalContext().isPortal);
+  }, []);
 
   const renderDashboard = () => {
     switch (activeDashboard) {
@@ -41,10 +48,10 @@ export default function Home() {
     <div className="min-h-screen bg-[#F8FAFC] text-gray-900 flex font-sans antialiased">
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col">
-        <Header currentDashboard={activeDashboard} />
-        <DashboardSelector value={activeDashboard} onChange={setActiveDashboard} />
+        <Header currentDashboard={isPortal ? 'Dashboard' : activeDashboard} />
+        {!isPortal && <DashboardSelector value={activeDashboard} onChange={setActiveDashboard} />}
         <div className="p-8 flex-1 overflow-y-auto">
-          {renderDashboard()}
+          {isPortal ? <PortalDashboard /> : renderDashboard()}
         </div>
       </div>
       <RightRail />

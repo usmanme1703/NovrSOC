@@ -191,6 +191,11 @@ export default function AdvisoryPage() {
     const [advisories, setAdvisories] = useState<Advisory[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [isPortal, setIsPortal] = useState(false);
+
+    useEffect(() => {
+        setIsPortal(getPortalContext().isPortal);
+    }, []);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats')
@@ -238,7 +243,7 @@ export default function AdvisoryPage() {
                         <h1 className="text-lg font-black text-gray-900">Threat Advisory</h1>
                         <p className="text-xs text-gray-500">Threat Intelligence · Advisories published by the Cybernovr SOC team</p>
                     </div>
-                    {!loading && advisories.length > 0 && (
+                    {!loading && advisories.length > 0 && !isPortal && (
                         <button onClick={() => setShowModal(true)}
                             className="text-xs font-bold px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors whitespace-nowrap">
                             + Publish Advisory
@@ -270,10 +275,12 @@ export default function AdvisoryPage() {
                         <p className="text-xs text-gray-400 max-w-sm mb-4">
                             The Cybernovr SOC team publishes advisories when new threats are identified. Check back soon.
                         </p>
-                        <button onClick={() => setShowModal(true)}
-                            className="text-xs font-bold px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors">
-                            + Publish Advisory
-                        </button>
+                        {!isPortal && (
+                            <button onClick={() => setShowModal(true)}
+                                className="text-xs font-bold px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors">
+                                + Publish Advisory
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-3">

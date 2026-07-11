@@ -79,7 +79,7 @@ function SkeletonRow() {
     );
 }
 
-function EmptyState() {
+function EmptyState({ isPortal }: { isPortal: boolean }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
@@ -91,7 +91,7 @@ function EmptyState() {
             <p className="text-xs text-gray-400 max-w-sm mb-4">
                 No security incidents detected in the last 7 days. Deploy Wazuh agents to start monitoring your endpoints.
             </p>
-            <Link href="/admin/integrations"
+            <Link href={isPortal ? '/' : '/admin/integrations'}
                 className="text-xs font-bold px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors">
                 Deploy Agent
             </Link>
@@ -110,6 +110,11 @@ export default function IncidentsPage() {
     const [incidents, setIncidents] = useState<RealIncident[]>([]);
     const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
     const [kpis, setKpis] = useState<IncidentKpis | null>(null);
+    const [isPortal, setIsPortal] = useState(false);
+
+    useEffect(() => {
+        setIsPortal(getPortalContext().isPortal);
+    }, []);
 
     useEffect(() => {
         fetch('/api/threat-intel/stats')
@@ -224,7 +229,7 @@ export default function IncidentsPage() {
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                     {isEmpty ? (
-                        <EmptyState />
+                        <EmptyState isPortal={isPortal} />
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">

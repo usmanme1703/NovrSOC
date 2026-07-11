@@ -29,6 +29,7 @@ const SectionHeader = ({ title, badge }: { title: string; badge?: string }) => (
 
 /* ── 1A: Global Threat Map ── */
 interface AttackOrigin { country: string; x: number; y: number; count: string; label: string; color: string; dashed: string }
+interface CtipCountry { country: string; name: string; count: number; flag: string }
 const NIGERIA_X = 500, NIGERIA_Y = 240;
 
 const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] = [
@@ -37,13 +38,32 @@ const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] =
     { label: 'Ransomware Probing', pct: 18, color: '#ea580c' },
 ];
 
-const GlobalThreatMap = ({ ctipStats }: {
+// Approximate positions on the 900x380 viewBox, matched to the continent silhouettes below.
+const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
+    CN: { x: 740, y: 140 }, RU: { x: 660, y: 75 }, US: { x: 140, y: 140 },
+    BR: { x: 220, y: 300 }, IN: { x: 660, y: 190 }, DE: { x: 480, y: 95 },
+    NL: { x: 465, y: 90 }, FR: { x: 465, y: 115 }, GB: { x: 455, y: 85 }, UA: { x: 525, y: 100 },
+};
+const ARC_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#7c3aed', '#2563eb'];
+const ARC_DASHES = ['6 4', '4 3', '8 3', '5 5', '3 6'];
+
+const GlobalThreatMap = ({ ctipStats, countries }: {
     ctipStats: { total_iocs: number } | null;
+    countries: CtipCountry[] | null;
 }) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
-    // No real IP-to-country resolution exists yet for Wazuh alert source IPs,
-    // so arcs stay empty until that pipeline is built — never show placeholder countries.
-    const attackOrigins: AttackOrigin[] = [];
+    const attackOrigins: AttackOrigin[] = (countries ?? []).map((c, i) => {
+        const coord = COUNTRY_COORDS[c.country] ?? { x: 500, y: 60 };
+        return {
+            country: `${c.flag} ${c.name}`,
+            x: coord.x,
+            y: coord.y,
+            count: c.count.toLocaleString(),
+            label: 'IOC Source',
+            color: ARC_COLORS[i % ARC_COLORS.length],
+            dashed: ARC_DASHES[i % ARC_DASHES.length],
+        };
+    });
     return (
         <Card>
             <div className="p-4">
@@ -134,45 +154,27 @@ const GlobalThreatMap = ({ ctipStats }: {
     );
 };
 
-/* ── 1B: Nigeria Threat Heatmap ── */
-const NIGERIA_FEED = [
-    { source: 'National Threat Advisory', type: 'Phishing Campaign', sector: 'Banking', severity: 'Critical', time: '14 mins ago' },
-    { source: 'National Threat Advisory', type: 'Ransomware Advisory', sector: 'Government', severity: 'High', time: '1 hr ago' },
-    { source: 'Financial Sector Intelligence', type: 'BEC Attack', sector: 'Financial', severity: 'Critical', time: '2 hrs ago' },
-    { source: 'National Threat Advisory', type: 'DDoS Attempt', sector: 'Telecom', severity: 'Medium', time: '3 hrs ago' },
-    { source: 'National Threat Advisory', type: 'Credential Stuffing', sector: 'Fintech', severity: 'High', time: '5 hrs ago' },
-];
-const INDUSTRIES = [
-    { label: '🏦 Banking & Finance', pct: 38, color: '#dc2626' },
-    { label: '📱 Telecom', pct: 24, color: '#ea580c' },
-    { label: '🏛️ Government', pct: 18, color: '#ca8a04' },
-    { label: '⛽ Oil & Gas', pct: 12, color: '#2563eb' },
-    { label: '🏥 Healthcare', pct: 8, color: '#16a34a' },
-];
-const sevColor = (s: string) => s === 'Critical' ? '#dc2626' : s === 'High' ? '#ea580c' : '#ca8a04';
+/* ── 1B: Nigeria Threat Activity ── */
+interface FeedAdvisory { id: number; title: string; severity: string; published_at: string }
+const sevColor = (s: string) => s === 'Critical' ? '#dc2626' : s === 'High' ? '#ea580c' : s === 'Medium' ? '#ca8a04' : '#2563eb';
 
-const NigeriaThreatMap = () => {
-    const [view, setView] = useState<'attacks' | 'outbound'>('attacks');
+function feedTimeAgo(iso: string): string {
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+    if (mins < 60) return mins <= 1 ? 'Just now' : `${mins} mins ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+const NigeriaThreatMap = ({ advisories }: { advisories: FeedAdvisory[] | null }) => {
+    const feed = (advisories ?? []).slice(0, 3);
     return (
         <Card>
             <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                    <div>
-                        <SectionHeader title="Nigeria National Threat Activity" />
-                        <p className="text-[10px] text-slate-500">State-level threat activity across Nigeria</p>
-                    </div>
-                    <div className="flex gap-1">
-                        {[['attacks', 'Attacks on Nigeria'], ['outbound', 'Outbound Threats']].map(([v, l]) => (
-                            <button key={v} onClick={() => setView(v as 'attacks' | 'outbound')}
-                                className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors ${
-                                    view === v
-                                        ? 'bg-[#1d4ed8] text-white border-[#1d4ed8]'
-                                        : 'bg-white border-slate-300 text-slate-600 hover:text-slate-800'
-                                }`}>
-                                {l}
-                            </button>
-                        ))}
-                    </div>
+                <div className="mb-3">
+                    <SectionHeader title="Nigeria National Threat Activity" />
+                    <p className="text-[10px] text-slate-500">Regional threat activity across Nigeria</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -180,66 +182,32 @@ const NigeriaThreatMap = () => {
                         <svg viewBox="0 0 300 300" className="w-full h-[180px]">
                             <path d="M 60 60 L 240 60 L 250 80 L 240 180 L 220 240 L 180 280 L 150 290 L 120 280 L 80 240 L 50 180 L 40 100 Z"
                                 fill="#e5e7eb" stroke="#d1d5db" strokeWidth="1.5" />
-                            <ellipse cx="80" cy="240" rx="30" ry="25" fill="#dc2626" opacity="0.7" />
-                            <ellipse cx="145" cy="165" rx="25" ry="22" fill="#ea580c" opacity="0.7" />
-                            <ellipse cx="160" cy="250" rx="25" ry="22" fill="#ea580c" opacity="0.7" />
-                            <ellipse cx="100" cy="200" rx="22" ry="18" fill="#ca8a04" opacity="0.6" />
-                            <ellipse cx="200" cy="230" rx="22" ry="18" fill="#ca8a04" opacity="0.6" />
-                            <ellipse cx="120" cy="120" rx="25" ry="20" fill="#ca8a04" opacity="0.6" />
-                            {[[80, 240], [145, 165], [160, 250]].map(([x, y], i) => (
-                                <g key={i}>
-                                    <circle cx={x} cy={y} r="6" fill="none" stroke="#dc2626" strokeWidth="1.5">
-                                        <animate attributeName="r" values="4;10;4" dur={`${1.5 + i * 0.3}s`} repeatCount="indefinite" />
-                                        <animate attributeName="opacity" values="1;0;1" dur={`${1.5 + i * 0.3}s`} repeatCount="indefinite" />
-                                    </circle>
-                                    <circle cx={x} cy={y} r="3" fill="#dc2626" />
-                                </g>
-                            ))}
-                            <text x="52" y="272" fill="#dc2626" fontSize="7" fontWeight="bold">Lagos</text>
-                            <text x="120" y="158" fill="#ea580c" fontSize="7" fontWeight="bold">FCT</text>
-                            <text x="140" y="270" fill="#ea580c" fontSize="7" fontWeight="bold">Rivers</text>
                         </svg>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {[['#dc2626', 'Critical'], ['#ea580c', 'High'], ['#ca8a04', 'Medium'], ['#d1d5db', 'Low']].map(([c, l]) => (
-                                <div key={l} className="flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: c }} />
-                                    <span className="text-[9px] text-slate-500">{l}</span>
-                                </div>
-                            ))}
-                        </div>
+                        <p className="text-[9px] text-slate-400 text-center mt-1">Regional threat data populates as Nigerian clients are onboarded</p>
                     </div>
 
-                    <div className="space-y-3">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Top Targeted Industries</p>
-                            <div className="space-y-1.5">
-                                {INDUSTRIES.map(ind => (
-                                    <div key={ind.label}>
-                                        <div className="flex justify-between text-[10px] text-slate-500 mb-0.5">
-                                            <span>{ind.label}</span>
-                                            <span className="font-bold text-blue-700">{ind.pct}%</span>
-                                        </div>
-                                        <div className="w-full bg-slate-200 h-1 rounded-full">
-                                            <div className="h-full rounded-full" style={{ width: `${ind.pct}%`, backgroundColor: ind.color }} />
-                                        </div>
-                                    </div>
-                                ))}
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Nigerian Threat Feed</p>
+                        {feed.length === 0 ? (
+                            <div className="py-6 text-center">
+                                <p className="text-[10px] text-slate-400 leading-relaxed">
+                                    No advisories published yet.<br />Use the Threat Advisory page to publish your first advisory.
+                                </p>
                             </div>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Nigerian Threat Feed</p>
+                        ) : (
                             <div className="space-y-1">
-                                {NIGERIA_FEED.map((f, i) => (
-                                    <div key={i} className="flex items-center gap-2 py-1 border-b border-slate-100" style={{ borderLeftColor: sevColor(f.severity) }}>
+                                {feed.map(f => (
+                                    <div key={f.id} className="flex items-center gap-2 py-1.5 border-b border-slate-100">
                                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: sevColor(f.severity) }} />
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-[9px] text-slate-800 font-semibold truncate">{f.source} — {f.type}</p>
-                                            <p className="text-[8px] text-slate-500">{f.sector} · {f.time}</p>
+                                            <p className="text-[9px] text-slate-800 font-semibold truncate">{f.title}</p>
+                                            <p className="text-[8px] text-slate-500">Cybernovr Intelligence · {feedTimeAgo(f.published_at)}</p>
                                         </div>
+                                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: sevColor(f.severity), backgroundColor: `${sevColor(f.severity)}15` }}>{f.severity}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -279,57 +247,59 @@ const ComplianceSnapshot = () => (
     </Card>
 );
 
-/* ── 1E: MSSP Client Portfolio ── */
-const MSSPPanel = ({ role, openIncidents, totalAssets }: { role: string; openIncidents: number | null; totalAssets: number | null }) => {
-    if (role !== 'SOC Manager') return null;
+/* ── 1E: Onboarded Clients ── */
+interface OnboardedClient { id: number; name: string; industry: string | null; status: string; agentsTotal: number; activeIncidents: number }
+
+const OnboardedClientsWidget = ({ clients, loading }: { clients: OnboardedClient[] | null; loading: boolean }) => {
+    const rows = (clients ?? []).slice(0, 5);
     return (
         <Card>
             <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <SectionHeader title="MSSP Client Portfolio" badge="1 Active Client" />
-                        <p className="text-[10px] text-slate-500">Cross-tenant security posture overview</p>
+                        <SectionHeader title="Onboarded Clients" badge={clients ? `${clients.length} ${clients.length === 1 ? 'Client' : 'Clients'}` : undefined} />
+                        <p className="text-[10px] text-slate-500">Client portfolio and monitoring status</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button className="text-[10px] font-bold px-3 py-1.5 bg-[#1d4ed8] text-white rounded-lg hover:bg-[#1e40af] transition-colors">+ Add Client</button>
-                        <Link href="/customers" className="text-[10px] font-semibold text-blue-700 hover:underline">View All →</Link>
-                    </div>
+                    <Link href="/customers" className="text-[10px] font-semibold text-blue-700 hover:underline">View All →</Link>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                {['Client', 'Industry', 'Risk Score', 'Active Incidents', 'Agents', 'Status'].map(h => (
-                                    <th key={h} className="text-left py-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{h}</th>
+                {loading ? (
+                    <div className="space-y-2 py-2">{Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-6 bg-slate-100 rounded animate-pulse" />)}</div>
+                ) : rows.length === 0 ? (
+                    <div className="py-8 text-center">
+                        <p className="text-[11px] text-slate-400 mb-3">No clients onboarded yet. Go to Customers to add your first client.</p>
+                        <Link href="/customers" className="inline-block text-[10px] font-bold px-3 py-1.5 bg-[#1d4ed8] text-white rounded-lg hover:bg-[#1e40af] transition-colors">Onboard First Client</Link>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    {['Client Name', 'Industry', 'Endpoints', 'Incidents (24h)', 'Status'].map(h => (
+                                        <th key={h} className="text-left py-2 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map(c => (
+                                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                        <td className="py-2 px-3 font-semibold text-slate-800">{c.name === 'Cybernovr' ? '🛡️' : '🏢'} {c.name}</td>
+                                        <td className="py-2 px-3 text-slate-500">{c.industry ?? '—'}</td>
+                                        <td className="py-2 px-3 text-slate-500">{c.agentsTotal.toLocaleString()}</td>
+                                        <td className="py-2 px-3 font-bold text-slate-700">{c.activeIncidents}</td>
+                                        <td className="py-2 px-3"><span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">🟢 {c.status}</span></td>
+                                    </tr>
                                 ))}
-                                <th className="py-2 px-3" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                <td className="py-2 px-3 font-semibold text-slate-800">🛡️ Cybernovr</td>
-                                <td className="py-2 px-3 text-slate-500">Cybersecurity</td>
-                                <td className="py-2 px-3"><span className="font-black text-blue-700">Active</span></td>
-                                <td className="py-2 px-3 font-bold text-slate-700">{openIncidents ?? '...'}</td>
-                                <td className="py-2 px-3 text-slate-500">{totalAssets !== null ? totalAssets.toLocaleString() : '...'}</td>
-                                <td className="py-2 px-3"><span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">🟢 Active</span></td>
-                                <td className="py-2 px-3">
-                                    <Link href="/customers" className="text-[10px] font-bold text-blue-700 hover:underline">View →</Link>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colSpan={7} className="py-3 px-3 text-center text-[10px] text-slate-400">More clients coming soon</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </Card>
     );
 };
 
 /* ── Main ── */
-export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) => {
+export const GeneralDashboard = () => {
     const [ctipStats, setCtipStats] = useState<{
         total_iocs: number;
         iocs_last_24h: number;
@@ -425,6 +395,35 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
             .catch(() => {});
     }, []);
 
+    const [ctipCountries, setCtipCountries] = useState<CtipCountry[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/ctip/countries', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setCtipCountries(Array.isArray(data) ? data : []))
+            .catch(() => setCtipCountries([]));
+    }, []);
+
+    const [nigeriaAdvisories, setNigeriaAdvisories] = useState<FeedAdvisory[] | null>(null);
+
+    useEffect(() => {
+        fetch('/api/advisories', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setNigeriaAdvisories(Array.isArray(data?.advisories) ? data.advisories : []))
+            .catch(() => setNigeriaAdvisories([]));
+    }, []);
+
+    const [clients, setClients] = useState<OnboardedClient[] | null>(null);
+    const [clientsLoading, setClientsLoading] = useState(true);
+
+    useEffect(() => {
+        fetch('/api/customers', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setClients(Array.isArray(data?.customers) ? data.customers : []))
+            .catch(() => setClients([]))
+            .finally(() => setClientsLoading(false));
+    }, []);
+
     const liveSystemMetrics = [
         {
             label: 'Threats Blocked',
@@ -472,14 +471,14 @@ export const GeneralDashboard = ({ role = 'SOC Manager' }: { role?: string }) =>
                 {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            <GlobalThreatMap ctipStats={ctipStats} />
+            <GlobalThreatMap ctipStats={ctipStats} countries={ctipCountries} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <NigeriaThreatMap />
+                <NigeriaThreatMap advisories={nigeriaAdvisories} />
                 <ComplianceSnapshot />
             </div>
 
-            <MSSPPanel role={role} openIncidents={openIncidentsCount} totalAssets={wazuhAgents?.total ?? null} />
+            <OnboardedClientsWidget clients={clients} loading={clientsLoading} />
 
             <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
                 <div className="w-full h-full flex items-end gap-2 pt-4">
