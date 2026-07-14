@@ -1,48 +1,69 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { ASSETS, ASSET_KPIS } from '@/lib/mock/assets';
+import { getPortalContext } from '@/lib/portal-context';
 
-const RISK_COLOR = (s: number) => s >= 75 ? 'text-red-600' : s >= 60 ? 'text-amber-600' : 'text-emerald-600';
-const AGENT_BADGE: Record<string, string> = {
-    Active: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-    Inactive: 'bg-gray-100 text-gray-500 border-gray-200',
-    Warning: 'bg-amber-50 text-amber-600 border-amber-200',
+interface Agent {
+    id: string;
+    name: string;
+    ip: string | null;
+    status: string;
+    lastSeen: string | null;
+    os: string | null;
+    group: string;
+}
+
+const STATUS_BADGE: Record<string, string> = {
+    active: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    disconnected: 'bg-gray-100 text-gray-500 border-gray-200',
+    pending: 'bg-amber-50 text-amber-600 border-amber-200',
+    never_connected: 'bg-gray-100 text-gray-500 border-gray-200',
 };
+
+function formatLastSeen(iso: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
 
 export default function AssetsPage() {
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState('All');
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [agents, setAgents] = useState<Agent[] | null>(null);
 
-    const types = ['All', ...Array.from(new Set(ASSETS.map(a => a.type)))];
+    useEffect(() => {
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/agents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setAgents(Array.isArray(data?.agents) ? data.agents : []))
+            .catch(() => setAgents([]));
+    }, []);
 
-    const filtered = useMemo(() => ASSETS.filter(a => {
-        if (typeFilter !== 'All' && a.type !== typeFilter) return false;
-        if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.ip.includes(search)) return false;
-        return true;
-    }), [search, typeFilter]);
+    const filtered = (agents ?? []).filter(a => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return a.name.toLowerCase().includes(q) || (a.ip ?? '').includes(q);
+    });
 
-    const detail = ASSETS.find(a => a.id === selectedId);
+    const loading = agents === null;
+    const total = agents?.length ?? 0;
+    const online = agents?.filter(a => a.status === 'active').length ?? 0;
 
     return (
         <PageLayout title="Asset Inventory">
             <div className="space-y-4">
                 <div>
                     <h1 className="text-lg font-black text-gray-900">Asset Inventory</h1>
-                    <p className="text-xs text-gray-500">Assets & Risk · Complete visibility across all managed assets</p>
+                    <p className="text-xs text-gray-500">Assets & Risk · Endpoints registered via the Wazuh agent</p>
                 </div>
 
                 {/* KPIs */}
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     {[
-                        { label: 'Total Assets', v: ASSET_KPIS.total.toLocaleString(), color: 'text-gray-900' },
-                        { label: 'Online', v: ASSET_KPIS.online.toLocaleString(), color: 'text-emerald-600' },
-                        { label: 'Critical Risk', v: ASSET_KPIS.critical, color: 'text-red-600' },
-                        { label: 'Unmanaged', v: ASSET_KPIS.unmanaged, color: 'text-amber-600' },
-                        { label: 'Internet-Facing', v: ASSET_KPIS.internetFacing, color: 'text-orange-600' },
-                        { label: 'Avg Risk Score', v: ASSET_KPIS.avgRisk, color: 'text-blue-700' },
+                        { label: 'Total Assets', v: loading ? '...' : String(total), color: 'text-gray-900' },
+                        { label: 'Online', v: loading ? '...' : String(online), color: 'text-emerald-600' },
+                        { label: 'Offline', v: loading ? '...' : String(total - online), color: 'text-gray-500' },
                     ].map(k => (
                         <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-3">
                             <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-3 -mx-3 mb-2 rounded-t-xl" />
@@ -52,90 +73,46 @@ export default function AssetsPage() {
                     ))}
                 </div>
 
-                {/* Filters */}
-                <div className="flex items-center gap-3 flex-wrap">
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets, IPs…"
-                        className="w-56 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 text-gray-700 placeholder:text-gray-400" />
-                    {types.map(t => (
-                        <button key={t} onClick={() => setTypeFilter(t)} className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-colors ${typeFilter === t ? 'bg-blue-700 text-white border-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700'}`}>{t}</button>
-                    ))}
-                </div>
+                {/* Search */}
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search assets, IPs…"
+                    className="w-56 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700 text-gray-700 placeholder:text-gray-400" />
 
-                <div className={`grid gap-5 ${detail ? 'grid-cols-3' : 'grid-cols-1'}`}>
-                    <div className={detail ? 'col-span-2' : 'col-span-1'}>
-                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                            <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                    <thead>
-                                        <tr className="border-b border-gray-200">
-                                            {['Asset Name', 'Type', 'IP Address', 'OS', 'Department', 'Risk Score', 'Agent', 'CVEs', 'Last Seen'].map(h => (
-                                                <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                                            ))}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                    {loading ? (
+                        <div className="p-6 space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}</div>
+                    ) : filtered.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-16">No assets registered yet.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="border-b border-gray-200">
+                                        {['Asset Name', 'IP', 'OS', 'Group', 'Status', 'Last Seen'].map(h => (
+                                            <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(a => (
+                                        <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-2.5 font-bold text-gray-800 whitespace-nowrap">{a.name}</td>
+                                            <td className="px-4 py-2.5 font-mono text-gray-600 text-[10px]">{a.ip ?? '—'}</td>
+                                            <td className="px-4 py-2.5 text-gray-500 text-[10px]">{a.os ?? '—'}</td>
+                                            <td className="px-4 py-2.5 text-gray-500">{a.group}</td>
+                                            <td className="px-4 py-2.5">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${STATUS_BADGE[a.status] ?? STATUS_BADGE.disconnected}`}>{a.status}</span>
+                                            </td>
+                                            <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">{formatLastSeen(a.lastSeen)}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filtered.map(a => (
-                                            <tr key={a.id} onClick={() => setSelectedId(selectedId === a.id ? null : a.id)}
-                                                className={`border-b border-gray-100 cursor-pointer transition-colors ${selectedId === a.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                                                <td className="px-4 py-2.5 font-bold text-gray-800 whitespace-nowrap">{a.name}</td>
-                                                <td className="px-4 py-2.5 text-gray-500">{a.type}</td>
-                                                <td className="px-4 py-2.5 font-mono text-gray-600 text-[10px]">{a.ip}</td>
-                                                <td className="px-4 py-2.5 text-gray-500 text-[10px]">{a.os}</td>
-                                                <td className="px-4 py-2.5 text-gray-500">{a.department}</td>
-                                                <td className="px-4 py-2.5 font-black text-sm">
-                                                    <span className={RISK_COLOR(a.riskScore)}>{a.riskScore}</span>
-                                                </td>
-                                                <td className="px-4 py-2.5">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${AGENT_BADGE[a.agentStatus]}`}>{a.agentStatus}</span>
-                                                </td>
-                                                <td className="px-4 py-2.5 font-black text-[11px] text-orange-600">{a.openCves}</td>
-                                                <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">{a.lastSeen}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-                                <p className="text-[10px] text-gray-400">Showing {filtered.length} of {ASSETS.length} assets</p>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-
-                    {detail && (
-                        <div className="col-span-1">
-                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                                <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
-                                <div className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h3 className="text-sm font-black text-gray-900">{detail.name}</h3>
-                                        <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
-                                    </div>
-                                    <div className="space-y-2 mb-4">
-                                        {[
-                                            ['Type', detail.type],
-                                            ['IP Address', detail.ip],
-                                            ['OS', detail.os],
-                                            ['Department', detail.department],
-                                            ['Risk Score', String(detail.riskScore)],
-                                            ['Wazuh Agent', detail.agentStatus],
-                                            ['Open CVEs', String(detail.openCves)],
-                                            ['Internet Facing', detail.internetFacing ? 'Yes' : 'No'],
-                                            ['Last Seen', detail.lastSeen],
-                                        ].map(([k, v]) => (
-                                            <div key={k} className="flex justify-between text-[10px]">
-                                                <span className="text-gray-400">{k}</span>
-                                                <span className="font-semibold text-gray-700">{v}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <button className="w-full py-2 bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold rounded-lg transition-colors">View Full Details</button>
-                                        <button className="w-full py-2 border border-orange-200 text-orange-600 text-[10px] font-bold rounded-lg hover:bg-orange-50 transition-colors">View CVEs ({detail.openCves})</button>
-                                        <button className="w-full py-2 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-lg hover:bg-gray-50 transition-colors">View Recent Alerts</button>
-                                    </div>
-                                </div>
-                            </div>
+                    )}
+                    {!loading && filtered.length > 0 && (
+                        <div className="px-4 py-3 border-t border-gray-100">
+                            <p className="text-[10px] text-gray-400">Showing {filtered.length} of {total} assets</p>
                         </div>
                     )}
                 </div>

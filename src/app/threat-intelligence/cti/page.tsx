@@ -35,6 +35,17 @@ interface SearchMatch {
     mitre_techniques: string[];
 }
 
+interface FeedIOC {
+    id: string;
+    ioc_type: string;
+    value: string;
+    confidence: number;
+    threat_type: string | null;
+    country: string | null;
+    first_seen: string | null;
+    last_seen: string | null;
+}
+
 function iocVerdict(confidence: number): string {
     if (confidence >= 80) return 'Malicious';
     if (confidence >= 50) return 'Suspicious';
@@ -71,6 +82,8 @@ export default function CTIPage() {
     const [searching, setSearching] = useState(false);
     const [searchResult, setSearchResult] = useState<{ found: boolean; matches: SearchMatch[] } | null>(null);
 
+    const [feedIocs, setFeedIocs] = useState<FeedIOC[] | null>(null);
+
     useEffect(() => {
         setIsPortal(getPortalContext().isPortal);
     }, []);
@@ -85,6 +98,11 @@ export default function CTIPage() {
             .then(r => r.json())
             .then(data => setFeeds(Array.isArray(data?.feeds) ? data.feeds : []))
             .catch(() => setFeeds([]));
+
+        fetch('/api/threat-intel/iocs?limit=50')
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => setFeedIocs(Array.isArray(data?.items) ? data.items : []))
+            .catch(() => setFeedIocs([]));
     }, []);
 
     const runSearch = async (e: React.FormEvent) => {
@@ -179,6 +197,45 @@ export default function CTIPage() {
                             );
                         })}
                     </div>
+                </div>
+
+                {/* Live IOC Feed */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                    <div className="p-4 pb-3">
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Live IOC Feed</p>
+                    </div>
+                    {feedIocs === null ? (
+                        <div className="p-6 space-y-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}</div>
+                    ) : feedIocs.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-8">No indicators available right now.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead><tr className="border-b border-gray-200">
+                                    {['Type', 'Value', 'Country', 'Confidence', 'Threat Type', 'First Seen', 'Verdict'].map(h =>
+                                        <th key={h} className="text-left px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                                    )}
+                                </tr></thead>
+                                <tbody>
+                                    {feedIocs.map(ioc => {
+                                        const verdict = iocVerdict(ioc.confidence);
+                                        return (
+                                            <tr key={ioc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded">{ioc.ioc_type}</span></td>
+                                                <td className="px-4 py-2 font-mono text-gray-700 max-w-xs truncate">{ioc.value}</td>
+                                                <td className="px-4 py-2 text-gray-500">{ioc.country ?? '—'}</td>
+                                                <td className="px-4 py-2 text-gray-700 font-bold">{ioc.confidence}%</td>
+                                                <td className="px-4 py-2 text-gray-500">{ioc.threat_type ?? '—'}</td>
+                                                <td className="px-4 py-2 text-gray-400">{formatSeen(ioc.first_seen ?? ioc.last_seen)}</td>
+                                                <td className={`px-4 py-2 font-bold ${verdict === 'Malicious' ? 'text-red-600' : verdict === 'Suspicious' ? 'text-amber-600' : 'text-emerald-600'}`}>{verdictEmoji[verdict]} {verdict}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
 
                 {/* Feed Status — operator-only info, hidden in the client portal */}
