@@ -39,11 +39,19 @@ export default function AdminLoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
-                    <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-blue-50 flex items-center justify-center">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2">
-                            <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/novrsoc.jpg"
+                        alt="NovrSOC"
+                        style={{
+                            height: '40px',
+                            width: 'auto',
+                            maxWidth: '160px',
+                            objectFit: 'contain',
+                            display: 'block',
+                            margin: '0 auto 16px',
+                        }}
+                    />
                     <h1 className="text-xl font-black text-gray-900">NovrSOC</h1>
                     <p className="text-xs text-gray-400 mt-1">MSSP Command Center</p>
                 </div>

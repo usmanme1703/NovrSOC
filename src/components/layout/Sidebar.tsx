@@ -124,7 +124,7 @@ export const Sidebar = () => {
             <div className="p-4 border-b border-slate-200 flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                    src="/novrsoc.png"
+                    src="/novrsoc.jpg"
                     alt="NovrSOC"
                     style={{
                         height: '32px',
