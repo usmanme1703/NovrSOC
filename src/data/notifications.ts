@@ -9,15 +9,6 @@ export interface Notification {
     read: boolean;
 }
 
-export const NOTIFICATIONS: Notification[] = [
-    { id: 1, type: 'critical', title: 'Malware Execution Blocked',  description: 'EDR-Agent-04 isolated endpoint after macro execution.',        time: '2 min ago',  read: false },
-    { id: 2, type: 'warning',  title: 'Unusual Outbound Transfer',  description: 'Network gateway flagged high-volume data egress.',             time: '18 min ago', read: false },
-    { id: 3, type: 'info',     title: 'New Asset Discovered',       description: 'Exposure monitor identified a new domain asset.',              time: '1 hr ago',   read: false },
-    { id: 4, type: 'critical', title: 'Brute Force Attempt',        description: 'Auth0 mitigation triggered on production gateway.',            time: '2 hr ago',   read: true  },
-    { id: 5, type: 'info',     title: 'Wazuh Sync Complete',        description: '1,418 of 1,420 agents successfully synchronized.',            time: '3 hr ago',   read: true  },
-    { id: 6, type: 'warning',  title: 'API Latency Spike',          description: 'Gateway latency briefly exceeded threshold at 142ms.',         time: '5 hr ago',   read: true  },
-];
-
 export const TYPE_CONFIG: Record<NotifType, {
     border: string;
     unreadBg: string;

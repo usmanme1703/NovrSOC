@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, AlertTriangle, Monitor, Bell, Shield, Radio, Search,
     Building2, CheckSquare, Bug, Zap, FileText, Target, Users, UserCog, Settings,
+    Activity, Brain, ChevronDown, ChevronUp,
     type LucideIcon,
 } from 'lucide-react';
 import { getPortalContext, type PortalContext } from '@/lib/portal-context';
@@ -30,6 +31,7 @@ const ADMIN_SECTIONS: NavSection[] = [
             { label: 'Dashboard', href: '/', icon: LayoutDashboard },
             { label: 'Incidents', href: '/security-operations/incidents', icon: AlertTriangle },
             { label: 'Asset Inventory', href: '/assets', icon: Monitor },
+            { label: 'MITRE ATT&CK', href: '/security-operations/mitre', icon: Target },
         ],
     },
     {
@@ -39,14 +41,15 @@ const ADMIN_SECTIONS: NavSection[] = [
             { label: 'Threat Management', href: '/threat-intelligence/threats', icon: Shield },
             { label: 'CTI Feed', href: '/threat-intelligence/cti', icon: Radio },
             { label: 'URL Scanner', href: '/threat-intelligence/url-scan', icon: Search },
+            { label: 'Campaigns', href: '/threat-intelligence/campaigns', icon: Activity },
         ],
     },
     {
         section: 'Risk & Compliance',
         items: [
             { label: 'Vendor Assessment', href: '/assets/vendors', icon: Building2 },
-            { label: 'Compliance', href: '/compliance', icon: CheckSquare },
             { label: 'CVEs', href: '/exposure/cves', icon: Bug },
+            { label: 'Compliance', href: '/compliance', icon: CheckSquare },
         ],
     },
     {
@@ -54,7 +57,7 @@ const ADMIN_SECTIONS: NavSection[] = [
         items: [
             { label: 'SOAR', href: '/protection/soar', icon: Zap },
             { label: 'Reports', href: '/reporting', icon: FileText },
-            { label: 'MITRE ATT&CK', href: '/security-operations/mitre', icon: Target },
+            { label: 'NovrAI', href: '/novr-ai', icon: Brain },
         ],
     },
     {
@@ -69,10 +72,15 @@ const ADMIN_SECTIONS: NavSection[] = [
 
 const PORTAL_SECTIONS: NavSection[] = [
     {
-        section: '',
+        section: 'Security Operations',
         items: [
             { label: 'Dashboard', href: '/', icon: LayoutDashboard },
             { label: 'Incidents', href: '/security-operations/incidents', icon: AlertTriangle },
+        ],
+    },
+    {
+        section: 'Threat Intelligence',
+        items: [
             { label: 'Threat Advisory', href: '/threat-intelligence/advisory', icon: Bell },
             { label: 'Threat Management', href: '/threat-intelligence/threats', icon: Shield },
             { label: 'CTI Feed', href: '/threat-intelligence/cti', icon: Radio },
@@ -81,12 +89,15 @@ const PORTAL_SECTIONS: NavSection[] = [
     },
 ];
 
+const DEFAULT_OPEN = new Set(['Security Operations', 'Threat Intelligence']);
+
 const NOT_PORTAL: PortalContext = { isPortal: false, orgId: null, orgName: null, orgIndustry: null, wazuhGroup: null, portalRole: null };
 
 export const Sidebar = () => {
     const pathname = usePathname();
     const [portal, setPortal] = useState<PortalContext>(NOT_PORTAL);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [openSections, setOpenSections] = useState<Set<string>>(DEFAULT_OPEN);
 
     useEffect(() => {
         setPortal(getPortalContext());
@@ -97,51 +108,72 @@ export const Sidebar = () => {
     const isActive = (href: string) => pathname === href;
     const signOut = portal.isPortal ? portalSignOut : adminSignOut;
 
+    const toggleSection = (section: string) => {
+        setOpenSections((prev) => {
+            const next = new Set(prev);
+            if (next.has(section)) next.delete(section);
+            else next.add(section);
+            return next;
+        });
+    };
+
     return (
         <aside className="w-[280px] bg-[#f8fafc] border-r border-slate-200 h-screen sticky top-0 flex flex-col z-30 select-none flex-shrink-0">
 
             {/* Logo */}
-            <div className="h-[64px] border-b border-slate-200 px-4 flex items-center flex-shrink-0">
+            <div className="p-4 border-b border-slate-200 flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src="/novrsoc.png"
                     alt="NovrSOC"
-                    className="h-8 w-auto object-contain"
-                    style={{ maxWidth: '140px' }}
+                    style={{
+                        height: '32px',
+                        width: 'auto',
+                        maxWidth: '140px',
+                        objectFit: 'contain',
+                        display: 'block',
+                    }}
                 />
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 overflow-y-auto p-2 scrollbar-thin">
-                {sections.map((navSection) => (
-                    <div key={navSection.section || 'portal'}>
-                        {navSection.section && (
-                            <p className="uppercase text-xs text-slate-400 font-semibold px-3 mb-1 mt-4 first:mt-2 tracking-wide">
-                                {navSection.section}
-                            </p>
-                        )}
-                        <div className="space-y-0.5">
-                            {navSection.items.map((item) => {
-                                const active = isActive(item.href);
-                                const Icon = item.icon;
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors duration-150 ${
-                                            active
-                                                ? 'bg-[#1d4ed8] text-white'
-                                                : 'bg-transparent text-slate-600 hover:bg-slate-100'
-                                        }`}
-                                    >
-                                        <Icon size={15} strokeWidth={2} className="flex-shrink-0" />
-                                        <span>{item.label}</span>
-                                    </Link>
-                                );
-                            })}
+            <nav className="flex-1 overflow-y-auto p-2 scrollbar-thin space-y-0.5">
+                {sections.map((navSection) => {
+                    const isOpen = openSections.has(navSection.section);
+                    return (
+                        <div key={navSection.section}>
+                            <button
+                                onClick={() => toggleSection(navSection.section)}
+                                className="w-full text-xs font-semibold uppercase text-slate-500 flex items-center justify-between px-3 py-2 hover:bg-slate-50 cursor-pointer rounded-md transition-colors"
+                            >
+                                <span>{navSection.section}</span>
+                                {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </button>
+                            {isOpen && (
+                                <div className="space-y-0.5 mb-1">
+                                    {navSection.items.map((item) => {
+                                        const active = isActive(item.href);
+                                        const Icon = item.icon;
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-[12px] font-semibold transition-colors duration-150 ${
+                                                    active
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-slate-600 hover:bg-slate-100'
+                                                }`}
+                                            >
+                                                <Icon size={15} strokeWidth={2} className="flex-shrink-0" />
+                                                <span>{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </nav>
 
             {/* Footer */}

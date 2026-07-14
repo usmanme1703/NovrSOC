@@ -1,7 +1,7 @@
 export interface MetricItem {
     value: string;
     trend: string;
-    type: 'blue' | 'purple' | 'orange';
+    type: 'blue' | 'purple' | 'orange' | 'red';
     label: string;
 }
 

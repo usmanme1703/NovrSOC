@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { NOTIFICATIONS, TYPE_CONFIG, type Notification } from '@/data/notifications';
+import { TYPE_CONFIG, type Notification } from '@/data/notifications';
 import React from 'react';
 
 const accountRows = [
@@ -70,27 +70,27 @@ export const RightRail = () => {
             .catch(() => {});
     }, []);
 
-    const [realNotifications, setRealNotifications] = useState<Notification[] | null>(null);
+    const [notifications, setNotifications] = useState<Notification[] | null>(null);
 
     useEffect(() => {
         fetch('/api/wazuh/notifications', { cache: 'no-store' })
             .then(r => r.json())
-            .then(data => {
-                if (Array.isArray(data) && data.length > 0) setRealNotifications(data);
-            })
-            .catch(() => {});
+            .then(data => setNotifications(Array.isArray(data) ? data : []))
+            .catch(() => setNotifications([]));
     }, []);
-
-    const notifications = realNotifications && realNotifications.length > 0 ? realNotifications : NOTIFICATIONS;
 
     const healthRows = [
         ...baseHealthRows.slice(0, 4),
-        { label: 'Collectors', value: ctipStats ? ctipStats.sources_active + ' Online' : '...' },
-        { label: 'Last Sync', value: ctipStats ? minsAgo(ctipStats.last_collector_run) : '...' },
+        {
+            label: 'Intelligence Feed',
+            value: ctipStats
+                ? `${ctipStats.sources_active} sources active, last sync ${minsAgo(ctipStats.last_collector_run)}`
+                : '...',
+        },
         ...baseHealthRows.slice(4),
     ];
 
-    const unreadCount = allRead ? 0 : notifications.filter(n => !n.read).length;
+    const unreadCount = allRead ? 0 : (notifications ?? []).filter(n => !n.read).length;
     const openPanel  = () => { setPanelOpen(true); setSeen(true); };
     const closePanel = () => setPanelOpen(false);
 
@@ -227,20 +227,28 @@ export const RightRail = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto scrollbar-thin">
-                    {notifications.map(notif => {
-                        const cfg = TYPE_CONFIG[notif.type];
-                        const isRead = notif.read || allRead;
-                        return (
-                            <div key={notif.id} className={`border-l-[4px] ${cfg.border} ${isRead ? 'bg-white' : cfg.unreadBg} px-4 py-4 border-b border-slate-100 cursor-pointer hover:brightness-95 transition-all`}>
-                                <div className="flex items-start justify-between gap-2 mb-1.5">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
-                                    <span className="text-[10px] text-slate-400 flex-shrink-0">{notif.time}</span>
+                    {notifications === null ? (
+                        <div className="p-4 space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 bg-slate-100 rounded animate-pulse" />)}</div>
+                    ) : notifications.length === 0 ? (
+                        <div className="py-16 px-6 text-center">
+                            <p className="text-xs text-slate-400">No recent alerts. Your environment looks clean.</p>
+                        </div>
+                    ) : (
+                        notifications.map(notif => {
+                            const cfg = TYPE_CONFIG[notif.type];
+                            const isRead = notif.read || allRead;
+                            return (
+                                <div key={notif.id} className={`border-l-[4px] ${cfg.border} ${isRead ? 'bg-white' : cfg.unreadBg} px-4 py-4 border-b border-slate-100 cursor-pointer hover:brightness-95 transition-all`}>
+                                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+                                        <span className="text-[10px] text-slate-400 flex-shrink-0">{notif.time}</span>
+                                    </div>
+                                    <p className={`text-xs font-bold mb-1 ${isRead ? 'text-slate-600' : 'text-slate-900'}`}>{notif.title}</p>
+                                    <p className="text-[11px] text-slate-500 leading-snug">{notif.description}</p>
                                 </div>
-                                <p className={`text-xs font-bold mb-1 ${isRead ? 'text-slate-600' : 'text-slate-900'}`}>{notif.title}</p>
-                                <p className="text-[11px] text-slate-500 leading-snug">{notif.description}</p>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    )}
                 </div>
 
                 <div className="border-t border-slate-100 px-5 py-3 flex-shrink-0">

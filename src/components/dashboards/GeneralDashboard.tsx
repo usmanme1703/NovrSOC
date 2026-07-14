@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { KpiCard } from '../shared/KpiCard';
+import { Monitor, AlertTriangle, AlertOctagon, Clock, Activity, Building2, Users, Server } from 'lucide-react';
+import { KpiCard, type KpiCardProps } from '../shared/KpiCard';
 import { ChartWrapper } from '../shared/ChartWrapper';
 import { DataTable } from '../shared/DataTable';
 import { StatusBadge } from '../shared/StatusBadge';
 import { GaugeChart } from '../shared/GaugeChart';
-import { globalMetrics, generalActivityLog } from '@/data/mockData';
+import { generalActivityLog } from '@/data/mockData';
 import { FRAMEWORKS } from '@/lib/mock/compliance';
 import { getPortalContext } from '@/lib/portal-context';
 
@@ -248,10 +249,42 @@ const ComplianceSnapshot = () => (
 );
 
 /* ── 1E: Onboarded Clients ── */
-interface OnboardedClient { id: number; name: string; industry: string | null; status: string; agentsTotal: number; activeIncidents: number }
+interface OnboardedClient { id: number; name: string; industry: string | null; status: string; agentsTotal: number; activeIncidents: number; wazuhGroup: string | null }
+interface ClientLiveData { endpoints: number; incidents: number }
+
+function clientStatusBadge(orgStatus: string, endpoints: number): { label: string; classes: string } {
+    if (orgStatus !== 'active') return { label: 'Inactive', classes: 'text-slate-500 bg-slate-100 border-slate-200' };
+    if (endpoints > 0) return { label: 'Active', classes: 'text-emerald-600 bg-emerald-50 border-emerald-200' };
+    return { label: 'Pending', classes: 'text-amber-600 bg-amber-50 border-amber-200' };
+}
 
 const OnboardedClientsWidget = ({ clients, loading }: { clients: OnboardedClient[] | null; loading: boolean }) => {
     const rows = (clients ?? []).slice(0, 5);
+    const [liveData, setLiveData] = useState<Record<number, ClientLiveData>>({});
+
+    useEffect(() => {
+        if (!clients || clients.length === 0) return;
+        const fetchGroup = async (group: string | null) => {
+            const [agentsRes, incidentsRes] = await Promise.all([
+                fetch(`/api/wazuh/agents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+                fetch(`/api/wazuh/incidents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+            ]);
+            return {
+                endpoints: typeof agentsRes?.total === 'number' ? agentsRes.total : 0,
+                incidents: typeof incidentsRes?.kpis?.total === 'number' ? incidentsRes.kpis.total : 0,
+            };
+        };
+        clients.forEach(async (c) => {
+            let result = await fetchGroup(c.wazuhGroup);
+            // A client's own wazuh_group may not have any registered agents yet
+            // (e.g. mid-onboarding) — fall back to 'default' so real data still shows.
+            if (result.endpoints === 0 && c.wazuhGroup && c.wazuhGroup !== 'default') {
+                result = await fetchGroup('default');
+            }
+            setLiveData(prev => ({ ...prev, [c.id]: result }));
+        });
+    }, [clients]);
+
     return (
         <Card>
             <div className="p-4">
@@ -280,15 +313,21 @@ const OnboardedClientsWidget = ({ clients, loading }: { clients: OnboardedClient
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map(c => (
-                                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                        <td className="py-2 px-3 font-semibold text-slate-800">{c.name === 'Cybernovr' ? '🛡️' : '🏢'} {c.name}</td>
-                                        <td className="py-2 px-3 text-slate-500">{c.industry ?? '—'}</td>
-                                        <td className="py-2 px-3 text-slate-500">{c.agentsTotal.toLocaleString()}</td>
-                                        <td className="py-2 px-3 font-bold text-slate-700">{c.activeIncidents}</td>
-                                        <td className="py-2 px-3"><span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">🟢 {c.status}</span></td>
-                                    </tr>
-                                ))}
+                                {rows.map(c => {
+                                    const live = liveData[c.id];
+                                    const endpoints = live?.endpoints ?? c.agentsTotal;
+                                    const incidents = live?.incidents ?? c.activeIncidents;
+                                    const badge = clientStatusBadge(c.status, endpoints);
+                                    return (
+                                        <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                            <td className="py-2 px-3 font-semibold text-slate-800">{c.name === 'Cybernovr' ? '🛡️' : '🏢'} {c.name}</td>
+                                            <td className="py-2 px-3 text-slate-500">{c.industry ?? '—'}</td>
+                                            <td className="py-2 px-3 text-slate-500">{endpoints.toLocaleString()}</td>
+                                            <td className="py-2 px-3 font-bold text-slate-700">{incidents}</td>
+                                            <td className="py-2 px-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.classes}`}>{badge.label}</span></td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -426,22 +465,21 @@ export const GeneralDashboard = () => {
             .finally(() => setClientsLoading(false));
     }, []);
 
-    const liveSystemMetrics = [
-        {
-            label: 'Threats Blocked',
-            value: ctipStats ? ctipStats.total_iocs.toLocaleString() : '...',
-            trend: ctipStats ? '+' + ctipStats.iocs_last_24h?.toLocaleString() + ' today' : '',
-            type: 'orange' as const,
-        },
-        { label: 'Clients Protected Today', value: '42 Active', trend: '100%', type: 'blue' as const },
-        { label: 'SIEM Ingestion Rate', value: '4.2k eps', trend: '+12%', type: 'purple' as const },
-        {
-            label: 'Wazuh Agent Syncs',
-            value: wazuhAgents ? `${wazuhAgents.active}/${wazuhAgents.total} Active` : '...',
-            trend: wazuhAgents ? `${Math.round((wazuhAgents.active / wazuhAgents.total) * 100)}%` : '',
-            type: 'blue' as const,
-        },
-    ];
+    const [vendorRisk, setVendorRisk] = useState<{ label: string; avg: number } | null>(null);
+
+    useEffect(() => {
+        fetch('/api/vendor-assessments', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                const assessments = Array.isArray(data?.assessments) ? data.assessments : [];
+                const scored = assessments.filter((a: { risk_score: number | null }) => typeof a.risk_score === 'number');
+                if (scored.length === 0) { setVendorRisk(null); return; }
+                const avg = scored.reduce((s: number, a: { risk_score: number }) => s + a.risk_score, 0) / scored.length;
+                const label = avg >= 75 ? 'High' : avg >= 50 ? 'Medium' : 'Low';
+                setVendorRisk({ label, avg: Math.round(avg) });
+            })
+            .catch(() => setVendorRisk(null));
+    }, []);
 
     const trendBars = trendData
         ? (() => {
@@ -450,30 +488,77 @@ export const GeneralDashboard = () => {
         })()
         : [40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => ({ heightPct: val, label: `W${i + 1}` }));
 
-    const data = globalMetrics.general;
-    const generalCards = Object.entries(data).map(([key, val]) => {
-        if (key === 'totalAssets' && wazuhAgents) return { ...val, value: wazuhAgents.total.toLocaleString() };
-        if (key === 'activeThreats') return { ...val, value: String(ctipStats?.active_campaigns ?? '...') };
-        if (key === 'riskScore') {
-            const hasClients = (clients?.length ?? 0) > 0;
-            const value = !hasClients
-                ? '0/100'
-                : ctipStats
-                    ? Math.min(100, (ctipStats.exploitable_cves_this_week * 10) + (ctipStats.active_campaigns * 5)) + '/100'
-                    : '...';
-            return { ...val, value };
-        }
-        if (key === 'criticalAlerts' && criticalAlertsCount !== null) return { ...val, value: String(criticalAlertsCount) };
-        if (key === 'openIncidents' && openIncidentsCount !== null) return { ...val, value: String(openIncidentsCount) };
-        return val;
-    });
-    const allCards = [...generalCards, ...liveSystemMetrics];
+    const hasClients = (clients?.length ?? 0) > 0;
+    const critical = criticalAlertsCount ?? 0;
+    const openTotal = openIncidentsCount ?? 0;
+    const riskScoreValue = !hasClients ? 0 : Math.min(100, critical * 10 + openTotal * 2);
+    const platformOperational = wazuhAgents !== null && ctipStats !== null;
+
+    const kpiCards: KpiCardProps[] = [
+        {
+            label: 'Total Assets',
+            value: wazuhAgents ? wazuhAgents.total.toLocaleString() : '...',
+            trend: '',
+            type: 'blue',
+            icon: Monitor,
+        },
+        {
+            label: 'Active Incidents',
+            value: openIncidentsCount !== null ? String(openIncidentsCount) : '...',
+            trend: '',
+            type: 'orange',
+            icon: AlertTriangle,
+        },
+        {
+            label: 'Critical Alerts',
+            value: criticalAlertsCount !== null ? String(criticalAlertsCount) : '...',
+            trend: '',
+            type: 'red',
+            icon: AlertOctagon,
+        },
+        {
+            label: 'Open Incidents',
+            value: openIncidentsCount !== null ? String(openIncidentsCount) : '...',
+            trend: '',
+            type: 'orange',
+            icon: Clock,
+        },
+        {
+            label: 'Risk Score',
+            value: `${riskScoreValue}/100`,
+            trend: '',
+            type: 'blue',
+            icon: Activity,
+        },
+        {
+            label: 'Vendor Risk',
+            value: vendorRisk ? vendorRisk.label : 'No Data',
+            trend: '',
+            type: 'purple',
+            icon: Building2,
+        },
+        {
+            label: 'Clients Protected',
+            value: clients ? String(clients.length) : '...',
+            trend: '',
+            type: 'blue',
+            icon: Users,
+        },
+        {
+            label: 'Platform Health',
+            value: platformOperational ? 'Operational' : 'Degraded',
+            trend: '',
+            type: platformOperational ? 'blue' : 'red',
+            icon: Server,
+            subValue: ctipStats ? `${ctipStats.sources_active} sources active` : undefined,
+        },
+    ];
 
     return (
         <div className="space-y-6">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider -mb-2">Aggregated across all onboarded clients</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {allCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {kpiCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
             <GlobalThreatMap ctipStats={ctipStats} countries={ctipCountries} />

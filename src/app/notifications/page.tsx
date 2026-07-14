@@ -1,18 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { NOTIFICATIONS, TYPE_CONFIG, NotifType } from '@/data/notifications';
+import { TYPE_CONFIG, type Notification, type NotifType } from '@/data/notifications';
 
 const FILTERS: Array<'all' | NotifType> = ['all', 'critical', 'warning', 'info'];
 
 export default function NotificationsPage() {
     const [allRead, setAllRead] = useState(false);
     const [filter, setFilter]   = useState<'all' | NotifType>('all');
+    const [notifications, setNotifications] = useState<Notification[] | null>(null);
 
-    const displayed = NOTIFICATIONS.filter(n => filter === 'all' || n.type === filter);
-    const totalUnread = allRead ? 0 : NOTIFICATIONS.filter(n => !n.read).length;
-    const criticalCount = NOTIFICATIONS.filter(n => n.type === 'critical').length;
+    useEffect(() => {
+        fetch('/api/wazuh/notifications', { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setNotifications(Array.isArray(data) ? data : []))
+            .catch(() => setNotifications([]));
+    }, []);
+
+    const all = notifications ?? [];
+    const displayed = all.filter(n => filter === 'all' || n.type === filter);
+    const totalUnread = allRead ? 0 : all.filter(n => !n.read).length;
+    const criticalCount = all.filter(n => n.type === 'critical').length;
 
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
@@ -54,7 +63,7 @@ export default function NotificationsPage() {
                 {/* Stats bar */}
                 <div className="grid grid-cols-3 gap-4">
                     {[
-                        { label: 'Total',    value: NOTIFICATIONS.length, color: 'text-gray-900', bg: 'bg-white' },
+                        { label: 'Total',    value: all.length,           color: 'text-gray-900', bg: 'bg-white' },
                         { label: 'Unread',   value: totalUnread,          color: 'text-blue-700',  bg: 'bg-blue-50 border-blue-100' },
                         { label: 'Critical', value: criticalCount,        color: 'text-red-700',   bg: 'bg-red-50 border-red-100' },
                     ].map(stat => (
@@ -88,7 +97,11 @@ export default function NotificationsPage() {
                     {/* Accent bar */}
                     <div className="h-[3px] bg-gradient-to-r from-[#2563EB] to-[#7C3AED]" />
 
-                    {displayed.length === 0 ? (
+                    {notifications === null ? (
+                        <div className="p-6 space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />)}</div>
+                    ) : all.length === 0 ? (
+                        <div className="py-16 text-center text-gray-400 text-sm">No recent alerts. Your environment looks clean.</div>
+                    ) : displayed.length === 0 ? (
                         <div className="py-16 text-center text-gray-400 text-sm">No notifications match this filter.</div>
                     ) : (
                         displayed.map((notif, idx) => {

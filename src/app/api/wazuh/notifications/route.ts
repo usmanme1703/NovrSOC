@@ -40,7 +40,7 @@ function search(body: unknown): Promise<SearchResponse | null> {
                     'Content-Length': Buffer.byteLength(payload),
                 },
                 rejectUnauthorized: false,
-                timeout: 8000,
+                timeout: 15000,
             },
             (res) => {
                 let data = '';
@@ -82,7 +82,7 @@ export async function GET() {
                 { 'rule.level': { order: 'desc' } },
                 { timestamp: { order: 'desc' } },
             ],
-            query: { range: { 'rule.level': { gte: 5 } } },
+            query: { range: { 'rule.level': { gte: 7 } } },
             _source: ['timestamp', 'rule.description', 'rule.level', 'agent.name'],
         });
 
@@ -92,7 +92,7 @@ export async function GET() {
             const description = h._source.rule?.description ?? 'Wazuh alert';
             return {
                 id: h._id,
-                type: level >= 10 ? 'critical' : level >= 7 ? 'warning' : 'info',
+                type: level >= 12 ? 'critical' : level >= 7 ? 'warning' : 'info',
                 title: truncate(description, 60),
                 description: 'Detected on ' + (h._source.agent?.name ?? 'unknown agent'),
                 time: timeAgo(h._source.timestamp),
