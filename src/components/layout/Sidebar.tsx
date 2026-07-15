@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, AlertTriangle, Monitor, Bell, Shield, Radio, Search,
     Building2, CheckSquare, Bug, Zap, FileText, Target, Users, UserCog, Settings,
-    Activity, Brain, ChevronDown, ChevronUp,
+    Activity, Brain, ChevronDown, ChevronUp, User,
     type LucideIcon,
 } from 'lucide-react';
 import { getPortalContext, type PortalContext } from '@/lib/portal-context';
@@ -58,6 +58,7 @@ const ADMIN_SECTIONS: NavSection[] = [
             { label: 'SOAR', href: '/protection/soar', icon: Zap },
             { label: 'Reports', href: '/reporting', icon: FileText },
             { label: 'NovrAI', href: '/novr-ai', icon: Brain },
+            { label: 'Account Overview', href: '/account', icon: User },
         ],
     },
     {
@@ -76,6 +77,7 @@ const PORTAL_SECTIONS: NavSection[] = [
         items: [
             { label: 'Dashboard', href: '/', icon: LayoutDashboard },
             { label: 'Incidents', href: '/security-operations/incidents', icon: AlertTriangle },
+            { label: 'Account', href: '/account', icon: User },
         ],
     },
     {

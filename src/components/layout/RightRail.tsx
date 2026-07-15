@@ -3,17 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { TYPE_CONFIG, type Notification } from '@/data/notifications';
+import type { AccountData } from '@/lib/account';
 import React from 'react';
 
-const accountRows = [
-    { label: 'Organization',     value: 'Cybernovr' },
-    { label: 'Subscription',     value: 'Enterprise Plan' },
-    { label: 'SOC Tier',         value: 'Premium' },
-    { label: 'Users',            value: '24 Active' },
-    { label: 'API Integrations', value: '8 Connected' },
-    { label: 'License Status',   value: 'Active' },
-    { label: 'Next Renewal',     value: '15 Sep 2026' },
-];
+function usageColor(pct: number): string {
+    if (pct > 80) return 'bg-red-500';
+    if (pct >= 60) return 'bg-amber-500';
+    return 'bg-emerald-500';
+}
 
 const baseHealthRows: { label: string; status?: string; value?: string }[] = [
     { label: 'Wazuh Manager',   status: 'Healthy' },
@@ -79,6 +76,20 @@ export const RightRail = () => {
             .catch(() => setNotifications([]));
     }, []);
 
+    const [account, setAccount] = useState<AccountData | null>(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem('portal_token') || localStorage.getItem('admin_token');
+        if (!token) return;
+        fetch('/api/account', {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+        })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then((data: AccountData) => setAccount(data))
+            .catch(() => {});
+    }, []);
+
     const healthRows = [
         ...baseHealthRows.slice(0, 4),
         {
@@ -136,17 +147,52 @@ export const RightRail = () => {
                                 <span className="text-xs">🏢</span>
                                 <h4 className="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-3 mb-3">Account Overview</h4>
                             </div>
-                            <p className="text-[10px] text-slate-500 mb-3">Current tenant and account information.</p>
-                            <div className="space-y-2">
-                                {accountRows.map(row => (
-                                    <div key={row.label} className="flex items-start justify-between gap-2">
-                                        <span className="text-[10px] text-slate-500 flex-shrink-0">{row.label}</span>
-                                        <span className="text-[10px] font-medium text-slate-800 text-right">{row.value}</span>
+                            {!account ? (
+                                <div className="space-y-2 py-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-4 bg-slate-100 rounded animate-pulse" />)}</div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-9 h-9 rounded-full bg-blue-700 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xs font-black text-white">{account.org.name.charAt(0).toUpperCase()}</span>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] font-bold text-slate-900 truncate">{account.org.name}</p>
+                                            <p className="text-[9px] text-slate-500 truncate">{account.org.industry}</p>
+                                        </div>
+                                        <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full flex-shrink-0">{account.org.plan}</span>
                                     </div>
-                                ))}
-                            </div>
+
+                                    <div className="grid grid-cols-3 gap-1.5 mb-3 text-center">
+                                        {[
+                                            { label: 'Endpoints', value: account.stats.total_endpoints },
+                                            { label: 'Incidents', value: account.stats.active_incidents },
+                                            { label: 'Members', value: account.stats.member_count },
+                                        ].map(s => (
+                                            <div key={s.label} className="bg-slate-50 rounded-lg py-1.5">
+                                                <p className="text-xs font-black text-slate-900">{s.value}</p>
+                                                <p className="text-[8px] text-slate-500 uppercase tracking-wide">{s.label}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[9px] text-slate-500">Endpoints</span>
+                                            <span className="text-[9px] font-semibold text-slate-700">{account.subscription.endpoints_used} / {account.subscription.endpoints_limit} used</span>
+                                        </div>
+                                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full ${usageColor(account.subscription.usage_percent)}`} style={{ width: `${Math.min(100, account.subscription.usage_percent)}%` }} />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-slate-100 space-y-0.5">
+                                        <p className="text-[10px] font-semibold text-slate-800">{account.org.contact_name}</p>
+                                        <p className="text-[9px] text-slate-500">{account.org.contact_email}</p>
+                                    </div>
+                                </>
+                            )}
                             <div className="mt-3 pt-3 border-t border-slate-100">
-                                <button className="text-[10px] font-semibold text-blue-700 hover:underline">Manage Account →</button>
+                                <Link href="/account" className="text-[10px] font-semibold text-blue-700 hover:underline">View Full Account →</Link>
                             </div>
                         </div>
                     </Card>
