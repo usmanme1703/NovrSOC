@@ -29,12 +29,29 @@ interface Advisory {
     published_at: string;
 }
 
+interface NetworkEntry {
+    ip: string;
+    count: number;
+    verdict: 'Malicious' | 'Suspicious' | 'Unknown';
+    country: string;
+    port: string;
+}
+
+interface NetworkData {
+    inbound: NetworkEntry[];
+    outbound: NetworkEntry[];
+    summary: { total_inbound: number; total_outbound: number; malicious_detected: number };
+}
+
 const sevBadge: Record<string, string> = {
     Critical: 'bg-red-50 text-red-600 border-red-200',
     High: 'bg-orange-50 text-orange-600 border-orange-200',
     Medium: 'bg-amber-50 text-amber-600 border-amber-200',
     Low: 'bg-blue-50 text-blue-600 border-blue-200',
 };
+
+const verdictEmoji: Record<string, string> = { Malicious: '🔴', Suspicious: '🟡', Unknown: '⚪' };
+const verdictColor: Record<string, string> = { Malicious: 'text-red-600', Suspicious: 'text-amber-600', Unknown: 'text-gray-400' };
 
 function timeAgo(iso: string | null): string {
     if (!iso) return '—';
@@ -74,17 +91,20 @@ export const PortalDashboard = () => {
     const [kpis, setKpis] = useState<IncidentKpis | null>(null);
     const [incidents, setIncidents] = useState<RealIncident[]>([]);
     const [advisories, setAdvisories] = useState<Advisory[]>([]);
-    const [totalIocs, setTotalIocs] = useState<number | null>(null);
+    const [threatsBlocked, setThreatsBlocked] = useState<number | null>(null);
+    const [network, setNetwork] = useState<NetworkData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const group = portal.wazuhGroup;
+        const groupParam = group ? `?group=${encodeURIComponent(group)}` : '';
         Promise.allSettled([
-            fetch(`/api/wazuh/agents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' }).then(r => r.json()),
-            fetch(`/api/wazuh/incidents${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' }).then(r => r.json()),
-            fetch('/api/threat-intel/stats', { cache: 'no-store' }).then(r => r.json()),
+            fetch(`/api/wazuh/agents${groupParam}`, { cache: 'no-store' }).then(r => r.json()),
+            fetch(`/api/wazuh/incidents${groupParam}`, { cache: 'no-store' }).then(r => r.json()),
+            fetch(`/api/wazuh/threats-blocked${groupParam}`, { cache: 'no-store' }).then(r => r.json()),
             fetch(`/api/advisories${portal.orgIndustry ? `?industry=${encodeURIComponent(portal.orgIndustry)}` : ''}`, { cache: 'no-store' }).then(r => r.json()),
-        ]).then(([agentsRes, incidentsRes, statsRes, advisoriesRes]) => {
+            fetch(`/api/wazuh/network-connections${groupParam}`, { cache: 'no-store' }).then(r => r.json()),
+        ]).then(([agentsRes, incidentsRes, threatsRes, advisoriesRes, networkRes]) => {
             if (agentsRes.status === 'fulfilled') {
                 const conn = agentsRes.value?.data?.connection;
                 if (conn) setAgents({ active: conn.active, total: conn.total });
@@ -93,11 +113,14 @@ export const PortalDashboard = () => {
                 if (Array.isArray(incidentsRes.value?.incidents)) setIncidents(incidentsRes.value.incidents.slice(0, 5));
                 if (incidentsRes.value?.kpis) setKpis(incidentsRes.value.kpis);
             }
-            if (statsRes.status === 'fulfilled' && typeof statsRes.value?.total_iocs === 'number') {
-                setTotalIocs(statsRes.value.total_iocs);
+            if (threatsRes.status === 'fulfilled' && typeof threatsRes.value?.threats_blocked === 'number') {
+                setThreatsBlocked(threatsRes.value.threats_blocked);
             }
             if (advisoriesRes.status === 'fulfilled' && Array.isArray(advisoriesRes.value?.advisories)) {
                 setAdvisories(advisoriesRes.value.advisories.slice(0, 3));
+            }
+            if (networkRes.status === 'fulfilled' && networkRes.value?.inbound) {
+                setNetwork(networkRes.value);
             }
             setLoading(false);
         });
@@ -108,10 +131,15 @@ export const PortalDashboard = () => {
     const threatLevel = kpis ? (kpis.total === 0 ? 'Low' : kpis.total <= 5 ? 'Elevated' : 'High') : null;
 
     const kpiCards = [
-        { label: 'Protected Endpoints', value: loading ? '...' : String(agents?.total ?? 0), color: 'text-blue-700' },
-        { label: 'Active Incidents (24h)', value: loading ? '...' : String(kpis?.total ?? 0), color: 'text-orange-600' },
-        { label: 'High Severity', value: loading ? '...' : String(kpis?.high ?? 0), color: 'text-red-600' },
-        { label: 'Threats Blocked', value: totalIocs !== null ? totalIocs.toLocaleString() : '...', color: 'text-violet-600' },
+        { label: 'Protected Endpoints', value: loading ? '...' : String(agents?.total ?? 0), color: 'text-blue-700', sub: undefined as string | undefined },
+        { label: 'Active Incidents (24h)', value: loading ? '...' : String(kpis?.total ?? 0), color: 'text-orange-600', sub: undefined as string | undefined },
+        { label: 'High Severity', value: loading ? '...' : String(kpis?.high ?? 0), color: 'text-red-600', sub: undefined as string | undefined },
+        {
+            label: 'Threats Blocked',
+            value: threatsBlocked !== null ? `${threatsBlocked.toLocaleString()} threats blocked` : '...',
+            color: 'text-violet-600',
+            sub: 'Last 30 days — your endpoints only',
+        },
     ];
 
     const windowsCmd = `Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.12.0-1.msi -OutFile wazuh-agent.msi; msiexec /i wazuh-agent.msi /q WAZUH_MANAGER="164.92.203.205" WAZUH_AGENT_GROUP="${wazuhGroup}" WAZUH_AGENT_NAME="${orgSlug}-endpoint-01"`;
@@ -130,6 +158,7 @@ export const PortalDashboard = () => {
                         <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-4 rounded-t-xl" />
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{k.label}</p>
                         <p className={`text-2xl font-black ${k.color}`}>{k.value}</p>
+                        {k.sub && <p className="text-[10px] text-gray-400 mt-1">{k.sub}</p>}
                     </div>
                 ))}
             </div>
@@ -171,6 +200,90 @@ export const PortalDashboard = () => {
                     </div>
                 </div>
             )}
+
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                <div className="p-4">
+                    <p className="text-xs font-black text-gray-800">Network Activity</p>
+                    <p className="text-[10px] text-gray-400">Last 24 hours</p>
+                </div>
+                {loading ? (
+                    <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}</div>
+                ) : !network || (network.inbound.length === 0 && network.outbound.length === 0) ? (
+                    <div className="py-10 px-6 text-center">
+                        <p className="text-xs text-gray-500 font-semibold mb-1">No network connection data yet.</p>
+                        <p className="text-[11px] text-gray-400 max-w-md mx-auto">
+                            Network monitoring activates once the Wazuh agent is configured with network audit rules.
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="px-4 pb-3">
+                            <p className="text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                                <span className="font-bold text-gray-700">{network.summary.total_inbound.toLocaleString()}</span> inbound connections ·{' '}
+                                <span className="font-bold text-gray-700">{network.summary.total_outbound.toLocaleString()}</span> outbound connections ·{' '}
+                                <span className="font-bold text-red-600">{network.summary.malicious_detected}</span> known malicious IPs detected
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-gray-100">
+                            <div className="p-4 md:border-r border-gray-100">
+                                <p className="text-xs font-black text-gray-800">⬇️ Inbound</p>
+                                <p className="text-[10px] text-gray-400 mb-3">External IPs connecting to your endpoints</p>
+                                {network.inbound.length === 0 ? (
+                                    <p className="text-[11px] text-gray-400 text-center py-6">No inbound connections in the last 24 hours.</p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-[11px]">
+                                            <thead><tr className="border-b border-gray-100">
+                                                {['IP Address', 'Count', 'Verdict', 'Country'].map(h => (
+                                                    <th key={h} className="text-left py-1.5 pr-2 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                                                ))}
+                                            </tr></thead>
+                                            <tbody>
+                                                {network.inbound.map(c => (
+                                                    <tr key={c.ip} className="border-b border-gray-50">
+                                                        <td className="py-1.5 pr-2 font-mono text-gray-700">{c.ip}</td>
+                                                        <td className="py-1.5 pr-2 text-gray-500">{c.count}</td>
+                                                        <td className={`py-1.5 pr-2 font-bold ${verdictColor[c.verdict]}`}>{verdictEmoji[c.verdict]} {c.verdict}</td>
+                                                        <td className="py-1.5 pr-2 text-gray-400">{c.country}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4">
+                                <p className="text-xs font-black text-gray-800">⬆️ Outbound</p>
+                                <p className="text-[10px] text-gray-400 mb-3">Your endpoints connecting to external IPs</p>
+                                {network.outbound.length === 0 ? (
+                                    <p className="text-[11px] text-gray-400 text-center py-6">No outbound connections in the last 24 hours.</p>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-[11px]">
+                                            <thead><tr className="border-b border-gray-100">
+                                                {['IP Address', 'Count', 'Verdict', 'Port'].map(h => (
+                                                    <th key={h} className="text-left py-1.5 pr-2 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                                                ))}
+                                            </tr></thead>
+                                            <tbody>
+                                                {network.outbound.map(c => (
+                                                    <tr key={c.ip} className="border-b border-gray-50">
+                                                        <td className="py-1.5 pr-2 font-mono text-gray-700">{c.ip}</td>
+                                                        <td className="py-1.5 pr-2 text-gray-500">{c.count}</td>
+                                                        <td className={`py-1.5 pr-2 font-bold ${verdictColor[c.verdict]}`}>{verdictEmoji[c.verdict]} {c.verdict}</td>
+                                                        <td className="py-1.5 pr-2 text-gray-400">{c.port}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
 
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
