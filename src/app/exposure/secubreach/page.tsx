@@ -31,7 +31,7 @@ export default function SecuBreachPage() {
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-lg font-black text-gray-900">SecuBreach — Vulnerability & Exposure Management</h1>
+                            <h1 className="text-lg font-black text-gray-900">SecuBreach: Vulnerability & Exposure Management</h1>
                             <span className="text-[9px] font-bold px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-full">Powered by SecuBreach</span>
                         </div>
                         <p className="text-xs text-gray-400">Vulnerability Management · Risk-prioritized CVE tracking and remediation</p>

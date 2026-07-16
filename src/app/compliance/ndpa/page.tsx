@@ -82,7 +82,7 @@ export default function NDPAPage() {
                 <div className="flex items-start justify-between">
                     <div>
                         <h1 className="text-lg font-black text-gray-900">Nigeria Data Protection Act</h1>
-                        <p className="text-xs text-gray-400">Compliance · NDPA Compliance Tracker — powered by NITDA framework</p>
+                        <p className="text-xs text-gray-400">Compliance · NDPA Compliance Tracker, powered by NITDA framework</p>
                     </div>
                     <div className="bg-white border border-gray-200 rounded-xl p-4 text-center min-w-[100px]">
                         <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-3 rounded-t-xl" />

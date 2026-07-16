@@ -83,7 +83,7 @@ function AddClientWizard({ onClose, onCreated }: { onClose: () => void; onCreate
                 <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-black text-gray-800">Client Onboarding — Step {step + 1} of {steps.length}</h2>
+                        <h2 className="text-sm font-black text-gray-800">Client Onboarding: Step {step + 1} of {steps.length}</h2>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-lg">✕</button>
                     </div>
                     <div className="flex items-center gap-1 mb-6">

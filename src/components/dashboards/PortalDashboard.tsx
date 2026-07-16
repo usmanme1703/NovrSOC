@@ -138,7 +138,7 @@ export const PortalDashboard = () => {
             label: 'Threats Blocked',
             value: threatsBlocked !== null ? `${threatsBlocked.toLocaleString()} threats blocked` : '...',
             color: 'text-violet-600',
-            sub: 'Last 30 days — your endpoints only',
+            sub: 'Last 30 days, your endpoints only',
         },
     ];
 
@@ -149,7 +149,7 @@ export const PortalDashboard = () => {
         <div className="space-y-6">
             <div>
                 <h1 className="text-lg font-black text-gray-900">Welcome, {portal.orgName}</h1>
-                <p className="text-xs text-gray-400">Your security overview — powered by Cybernovr NovrSOC</p>
+                <p className="text-xs text-gray-400">Your security overview, powered by Cybernovr NovrSOC</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

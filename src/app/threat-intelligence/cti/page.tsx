@@ -137,7 +137,7 @@ export default function CTIPage() {
         <PageLayout title="Threat Intelligence">
             <div className="space-y-5">
                 <div>
-                    <h1 className="text-lg font-black text-gray-900">Threat Intelligence — CTI Dashboard</h1>
+                    <h1 className="text-lg font-black text-gray-900">Threat Intelligence: CTI Dashboard</h1>
                     <p className="text-xs text-gray-400">Threat Intelligence · Indicator search and feed health, powered by CTIP</p>
                 </div>
 

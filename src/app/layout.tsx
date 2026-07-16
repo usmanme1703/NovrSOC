@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "NovrSOC — AI-Powered SOC Platform by Cybernovr",
+  title: "NovrSOC: AI-Powered SOC Platform by Cybernovr",
   description: "AI-Powered MSSP & SOC-as-a-Service Platform for Africa",
 };
 

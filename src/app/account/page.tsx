@@ -68,8 +68,8 @@ export default function AccountPage() {
     }, []);
 
     const title = isPortal
-        ? `${account?.org.name ?? 'Your Organisation'} — Security Portal Account`
-        : 'Cybernovr — Platform Account';
+        ? `${account?.org.name ?? 'Your Organisation'} Security Portal Account`
+        : 'Cybernovr Platform Account';
 
     return (
         <PageLayout title="Account Overview">

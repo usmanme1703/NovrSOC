@@ -70,7 +70,7 @@ const GlobalThreatMap = ({ ctipStats, countries }: {
             <div className="p-4">
                 <div className="flex items-start justify-between mb-3">
                     <div>
-                        <SectionHeader title="Global Threat Map — Live Attack Activity" />
+                        <SectionHeader title="Global Threat Map: Live Attack Activity" />
                         <p className="text-[10px] text-slate-500">Inbound attacks targeting NovrSOC-protected clients</p>
                     </div>
                     <div className="flex items-center gap-2">

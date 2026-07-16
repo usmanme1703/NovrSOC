@@ -56,7 +56,7 @@ export default function WorkbenchPage() {
             <div className="space-y-4">
                 <div>
                     <h1 className="text-lg font-black text-gray-900">SOC Analyst Workbench</h1>
-                    <p className="text-xs text-gray-400">Security Operations · Full analyst toolkit — alerts, cases, threat hunting, IOC lookup</p>
+                    <p className="text-xs text-gray-400">Security Operations · Full analyst toolkit: alerts, cases, threat hunting, IOC lookup</p>
                 </div>
 
                 {/* Tabs */}
@@ -132,7 +132,7 @@ export default function WorkbenchPage() {
                     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                         <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
                         <div className="p-4">
-                            <p className="text-xs font-black text-gray-800 mb-1">Incident Timeline — CAS-2026-0041</p>
+                            <p className="text-xs font-black text-gray-800 mb-1">Incident Timeline: CAS-2026-0041</p>
                             <p className="text-[10px] text-gray-400 mb-4">Ransomware Investigation · WORKSTATION-042</p>
                             <div className="space-y-1 border-l-2 border-blue-200 pl-4 ml-2">
                                 {TIMELINE.map((t, i) => (
