@@ -9,20 +9,17 @@ const INDEXER_USER = process.env.WAZUH_INDEXER_USER || 'admin';
 const INDEXER_PASS = process.env.WAZUH_INDEXER_PASS;
 const CTIP_URL = process.env.CTIP_API_URL || 'http://138.197.188.132:8001';
 
-const PRIVATE_PREFIXES = [{ prefix: '10.' }, { prefix: '192.168.' }, { prefix: '172.' }, { prefix: '127.' }];
+const PRIVATE_PREFIXES = ['10.', '192.168.', '172.'];
 
 interface AggBucket { key: string; doc_count: number }
 interface RawHit {
     _source: {
-        timestamp?: string;
         data?: { srcip?: string; dstip?: string; dstport?: string; srcport?: string };
-        rule?: { description?: string; level?: number };
-        agent?: { name?: string };
     };
 }
 interface SearchResponse {
-    hits?: { hits?: RawHit[]; total?: { value?: number } };
-    aggregations?: { top_sources?: { buckets?: AggBucket[] }; top_destinations?: { buckets?: AggBucket[] } };
+    hits?: { hits?: RawHit[] };
+    aggregations?: { top_ips?: { buckets?: AggBucket[] } };
 }
 
 function search(body: unknown): Promise<SearchResponse | null> {
@@ -81,35 +78,38 @@ async function lookupIoc(ip: string): Promise<{ verdict: 'Malicious' | 'Suspicio
     }
 }
 
+function networkLabel(ip: string): string {
+    if (ip.startsWith('10.')) return '10.x Corporate';
+    if (ip.startsWith('192.168.')) {
+        const parts = ip.split('.');
+        return `192.168.${parts[2] ?? '0'}.x LAN`;
+    }
+    if (ip.startsWith('172.')) return '172.x LAN';
+    return 'Private Network';
+}
+
+function ipAggQuery(field: 'data.srcip' | 'data.dstip', agentFilter: unknown[], scope: 'external' | 'internal') {
+    const must: unknown[] = [{ exists: { field } }, { range: { timestamp: { gte: 'now-24h' } } }, ...agentFilter];
+    const query =
+        scope === 'external'
+            ? { bool: { must, must_not: PRIVATE_PREFIXES.map((p) => ({ prefix: { [field]: p } })) } }
+            : { bool: { must, should: PRIVATE_PREFIXES.map((p) => ({ prefix: { [field]: p } })), minimum_should_match: 1 } };
+    return search({ size: 0, query, aggs: { top_ips: { terms: { field, size: 10 } } } });
+}
+
 export async function GET(req: NextRequest) {
     try {
         const group = req.nextUrl.searchParams.get('group');
         const agentNames = group ? await getAgentNamesForGroup(group) : null;
         const agentFilter = agentNames ? [{ terms: { 'agent.name': agentNames } }] : [];
 
-        const [sourcesRes, destinationsRes, connectionsRes] = await Promise.allSettled([
+        const [extSrcRes, extDstRes, intSrcRes, intDstRes, rawRes] = await Promise.allSettled([
+            ipAggQuery('data.srcip', agentFilter, 'external'),
+            ipAggQuery('data.dstip', agentFilter, 'external'),
+            ipAggQuery('data.srcip', agentFilter, 'internal'),
+            ipAggQuery('data.dstip', agentFilter, 'internal'),
             search({
-                size: 0,
-                query: {
-                    bool: {
-                        must: [{ exists: { field: 'data.srcip' } }, { range: { timestamp: { gte: 'now-24h' } } }, ...agentFilter],
-                        must_not: PRIVATE_PREFIXES.map((p) => ({ prefix: { 'data.srcip': p.prefix } })),
-                    },
-                },
-                aggs: { top_sources: { terms: { field: 'data.srcip', size: 10 } } },
-            }),
-            search({
-                size: 0,
-                query: {
-                    bool: {
-                        must: [{ exists: { field: 'data.dstip' } }, { range: { timestamp: { gte: 'now-24h' } } }, ...agentFilter],
-                        must_not: PRIVATE_PREFIXES.map((p) => ({ prefix: { 'data.dstip': p.prefix } })),
-                    },
-                },
-                aggs: { top_destinations: { terms: { field: 'data.dstip', size: 10 } } },
-            }),
-            search({
-                size: 20,
+                size: 40,
                 query: {
                     bool: {
                         must: [
@@ -119,29 +119,40 @@ export async function GET(req: NextRequest) {
                         ],
                     },
                 },
-                _source: ['timestamp', 'data.srcip', 'data.dstip', 'data.dstport', 'data.srcport', 'rule.description', 'rule.level', 'agent.name'],
-                sort: [{ timestamp: { order: 'desc' } }],
+                _source: ['data.srcip', 'data.dstip', 'data.dstport', 'data.srcport'],
             }),
         ]);
 
-        const sourceBuckets = sourcesRes.status === 'fulfilled' ? sourcesRes.value?.aggregations?.top_sources?.buckets ?? [] : [];
-        const destBuckets = destinationsRes.status === 'fulfilled' ? destinationsRes.value?.aggregations?.top_destinations?.buckets ?? [] : [];
-        const rawHits = connectionsRes.status === 'fulfilled' ? connectionsRes.value?.hits?.hits ?? [] : [];
+        const bucketsOf = (r: PromiseSettledResult<SearchResponse | null>) =>
+            r.status === 'fulfilled' ? r.value?.aggregations?.top_ips?.buckets ?? [] : [];
+
+        const extSrcBuckets = bucketsOf(extSrcRes);
+        const extDstBuckets = bucketsOf(extDstRes);
+        const intSrcBuckets = bucketsOf(intSrcRes);
+        const intDstBuckets = bucketsOf(intDstRes);
+        const rawHits = rawRes.status === 'fulfilled' ? rawRes.value?.hits?.hits ?? [] : [];
 
         const portForIp = (ip: string, field: 'srcip' | 'dstip', portField: 'dstport' | 'srcport') => {
             const hit = rawHits.find((h) => h._source.data?.[field] === ip);
             return hit?._source.data?.[portField] ?? '—';
         };
 
-        const uniqueIps = Array.from(new Set([...sourceBuckets.map((b) => b.key), ...destBuckets.map((b) => b.key)]));
-        const lookups = await Promise.allSettled(uniqueIps.map((ip) => lookupIoc(ip)));
+        const allIps = Array.from(
+            new Set([
+                ...extSrcBuckets.map((b) => b.key),
+                ...extDstBuckets.map((b) => b.key),
+                ...intSrcBuckets.map((b) => b.key),
+                ...intDstBuckets.map((b) => b.key),
+            ])
+        );
+        const lookups = await Promise.allSettled(allIps.map((ip) => lookupIoc(ip)));
         const verdictByIp = new Map<string, { verdict: 'Malicious' | 'Suspicious' | 'Unknown'; country: string | null }>();
-        uniqueIps.forEach((ip, i) => {
+        allIps.forEach((ip, i) => {
             const r = lookups[i];
             verdictByIp.set(ip, r.status === 'fulfilled' ? r.value : { verdict: 'Unknown', country: null });
         });
 
-        const inbound = sourceBuckets.map((b) => ({
+        const externalInbound = extSrcBuckets.map((b) => ({
             ip: b.key,
             count: b.doc_count,
             verdict: verdictByIp.get(b.key)?.verdict ?? 'Unknown',
@@ -149,7 +160,7 @@ export async function GET(req: NextRequest) {
             port: portForIp(b.key, 'srcip', 'dstport'),
         }));
 
-        const outbound = destBuckets.map((b) => ({
+        const externalOutbound = extDstBuckets.map((b) => ({
             ip: b.key,
             count: b.doc_count,
             verdict: verdictByIp.get(b.key)?.verdict ?? 'Unknown',
@@ -157,36 +168,49 @@ export async function GET(req: NextRequest) {
             port: portForIp(b.key, 'dstip', 'srcport'),
         }));
 
-        const connections = rawHits.map((h) => {
-            const srcip = h._source.data?.srcip ?? null;
-            const dstip = h._source.data?.dstip ?? null;
-            return {
-                timestamp: h._source.timestamp ?? null,
-                srcip,
-                dstip,
-                dstport: h._source.data?.dstport ?? null,
-                description: h._source.rule?.description ?? 'Network event',
-                level: h._source.rule?.level ?? 0,
-                agent: h._source.agent?.name ?? 'Unknown',
-                direction: srcip ? ('inbound' as const) : ('outbound' as const),
-            };
-        });
+        // Private IPs are internal by definition; only override the "Internal" badge if CTIP
+        // somehow flags the address (rare, but a compromised internal host could still show up).
+        const internalInbound = intSrcBuckets.map((b) => ({
+            ip: b.key,
+            count: b.doc_count,
+            verdict: verdictByIp.get(b.key)?.verdict === 'Malicious' || verdictByIp.get(b.key)?.verdict === 'Suspicious'
+                ? verdictByIp.get(b.key)!.verdict
+                : ('Internal' as const),
+            network: networkLabel(b.key),
+            port: portForIp(b.key, 'srcip', 'dstport'),
+        }));
 
-        const maliciousDetected = [...inbound, ...outbound].filter((c) => c.verdict === 'Malicious').length;
+        const internalOutbound = intDstBuckets.map((b) => ({
+            ip: b.key,
+            count: b.doc_count,
+            verdict: verdictByIp.get(b.key)?.verdict === 'Malicious' || verdictByIp.get(b.key)?.verdict === 'Suspicious'
+                ? verdictByIp.get(b.key)!.verdict
+                : ('Internal' as const),
+            network: networkLabel(b.key),
+            port: portForIp(b.key, 'dstip', 'srcport'),
+        }));
+
+        const maliciousDetected = [...externalInbound, ...externalOutbound, ...internalInbound, ...internalOutbound].filter(
+            (c) => c.verdict === 'Malicious'
+        ).length;
 
         return NextResponse.json({
-            inbound,
-            outbound,
-            connections,
+            external: { inbound: externalInbound, outbound: externalOutbound },
+            internal: { inbound: internalInbound, outbound: internalOutbound },
             summary: {
-                total_inbound: inbound.reduce((s, c) => s + c.count, 0),
-                total_outbound: outbound.reduce((s, c) => s + c.count, 0),
+                total_external_inbound: externalInbound.reduce((s, c) => s + c.count, 0),
+                total_external_outbound: externalOutbound.reduce((s, c) => s + c.count, 0),
+                total_internal: internalInbound.reduce((s, c) => s + c.count, 0) + internalOutbound.reduce((s, c) => s + c.count, 0),
                 malicious_detected: maliciousDetected,
             },
         });
     } catch {
         return NextResponse.json(
-            { inbound: [], outbound: [], connections: [], summary: { total_inbound: 0, total_outbound: 0, malicious_detected: 0 } },
+            {
+                external: { inbound: [], outbound: [] },
+                internal: { inbound: [], outbound: [] },
+                summary: { total_external_inbound: 0, total_external_outbound: 0, total_internal: 0, malicious_detected: 0 },
+            },
             { status: 502 }
         );
     }

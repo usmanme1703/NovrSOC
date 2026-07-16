@@ -29,7 +29,7 @@ interface Advisory {
     published_at: string;
 }
 
-interface NetworkEntry {
+interface ExternalEntry {
     ip: string;
     count: number;
     verdict: 'Malicious' | 'Suspicious' | 'Unknown';
@@ -37,10 +37,18 @@ interface NetworkEntry {
     port: string;
 }
 
+interface InternalEntry {
+    ip: string;
+    count: number;
+    verdict: 'Malicious' | 'Suspicious' | 'Internal';
+    network: string;
+    port: string;
+}
+
 interface NetworkData {
-    inbound: NetworkEntry[];
-    outbound: NetworkEntry[];
-    summary: { total_inbound: number; total_outbound: number; malicious_detected: number };
+    external: { inbound: ExternalEntry[]; outbound: ExternalEntry[] };
+    internal: { inbound: InternalEntry[]; outbound: InternalEntry[] };
+    summary: { total_external_inbound: number; total_external_outbound: number; total_internal: number; malicious_detected: number };
 }
 
 const sevBadge: Record<string, string> = {
@@ -50,8 +58,42 @@ const sevBadge: Record<string, string> = {
     Low: 'bg-blue-50 text-blue-600 border-blue-200',
 };
 
-const verdictEmoji: Record<string, string> = { Malicious: '🔴', Suspicious: '🟡', Unknown: '⚪' };
-const verdictColor: Record<string, string> = { Malicious: 'text-red-600', Suspicious: 'text-amber-600', Unknown: 'text-gray-400' };
+const verdictEmoji: Record<string, string> = { Malicious: '🔴', Suspicious: '🟡', Unknown: '⚪', Internal: '⚪' };
+const verdictColor: Record<string, string> = { Malicious: 'text-red-600', Suspicious: 'text-amber-600', Unknown: 'text-gray-400', Internal: 'text-gray-400' };
+
+function NetworkTable<T extends { ip: string; count: number; verdict: string; port: string }>({
+    rows, locationLabel, getLocation, getDirection, emptyText,
+}: {
+    rows: T[];
+    locationLabel: string;
+    getLocation: (r: T) => string;
+    getDirection: (r: T) => string;
+    emptyText: string;
+}) {
+    if (rows.length === 0) return <p className="text-[11px] text-gray-400 text-center py-6">{emptyText}</p>;
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+                <thead><tr className="border-b border-gray-100">
+                    {['IP Address', 'Direction', 'Count', 'Verdict', locationLabel].map(h => (
+                        <th key={h} className="text-left py-1.5 pr-2 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                    ))}
+                </tr></thead>
+                <tbody>
+                    {rows.map((r, i) => (
+                        <tr key={`${r.ip}-${i}`} className="border-b border-gray-50">
+                            <td className="py-1.5 pr-2 font-mono text-gray-700">{r.ip}</td>
+                            <td className="py-1.5 pr-2 text-gray-500 capitalize">{getDirection(r)}</td>
+                            <td className="py-1.5 pr-2 text-gray-500">{r.count}</td>
+                            <td className={`py-1.5 pr-2 font-bold ${verdictColor[r.verdict] ?? verdictColor.Unknown}`}>{verdictEmoji[r.verdict] ?? verdictEmoji.Unknown} {r.verdict}</td>
+                            <td className="py-1.5 pr-2 text-gray-400">{getLocation(r)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
 
 function timeAgo(iso: string | null): string {
     if (!iso) return '—';
@@ -119,7 +161,7 @@ export const PortalDashboard = () => {
             if (advisoriesRes.status === 'fulfilled' && Array.isArray(advisoriesRes.value?.advisories)) {
                 setAdvisories(advisoriesRes.value.advisories.slice(0, 3));
             }
-            if (networkRes.status === 'fulfilled' && networkRes.value?.inbound) {
+            if (networkRes.status === 'fulfilled' && networkRes.value?.external) {
                 setNetwork(networkRes.value);
             }
             setLoading(false);
@@ -209,7 +251,11 @@ export const PortalDashboard = () => {
                 </div>
                 {loading ? (
                     <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />)}</div>
-                ) : !network || (network.inbound.length === 0 && network.outbound.length === 0) ? (
+                ) : !network ||
+                  (network.external.inbound.length === 0 &&
+                    network.external.outbound.length === 0 &&
+                    network.internal.inbound.length === 0 &&
+                    network.internal.outbound.length === 0) ? (
                     <div className="py-10 px-6 text-center">
                         <p className="text-xs text-gray-500 font-semibold mb-1">No network connection data yet.</p>
                         <p className="text-[11px] text-gray-400 max-w-md mx-auto">
@@ -217,71 +263,66 @@ export const PortalDashboard = () => {
                         </p>
                     </div>
                 ) : (
-                    <>
-                        <div className="px-4 pb-3">
-                            <p className="text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-                                <span className="font-bold text-gray-700">{network.summary.total_inbound.toLocaleString()}</span> inbound connections ·{' '}
-                                <span className="font-bold text-gray-700">{network.summary.total_outbound.toLocaleString()}</span> outbound connections ·{' '}
-                                <span className="font-bold text-red-600">{network.summary.malicious_detected}</span> known malicious IPs detected
-                            </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 border-t border-gray-100">
+                        <div className="p-4 md:border-r border-b border-gray-100">
+                            <p className="text-xs font-black text-gray-800">⬇️ Inbound External</p>
+                            <p className="text-[10px] text-gray-400 mb-3">Public IPs connecting to your endpoints</p>
+                            <NetworkTable
+                                rows={network.external.inbound}
+                                locationLabel="Country"
+                                getLocation={(r) => r.country}
+                                getDirection={() => 'Inbound'}
+                                emptyText="No external inbound connections detected in the last 24 hours."
+                            />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-gray-100">
-                            <div className="p-4 md:border-r border-gray-100">
-                                <p className="text-xs font-black text-gray-800">⬇️ Inbound</p>
-                                <p className="text-[10px] text-gray-400 mb-3">External IPs connecting to your endpoints</p>
-                                {network.inbound.length === 0 ? (
-                                    <p className="text-[11px] text-gray-400 text-center py-6">No inbound connections in the last 24 hours.</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-[11px]">
-                                            <thead><tr className="border-b border-gray-100">
-                                                {['IP Address', 'Count', 'Verdict', 'Country'].map(h => (
-                                                    <th key={h} className="text-left py-1.5 pr-2 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-                                                ))}
-                                            </tr></thead>
-                                            <tbody>
-                                                {network.inbound.map(c => (
-                                                    <tr key={c.ip} className="border-b border-gray-50">
-                                                        <td className="py-1.5 pr-2 font-mono text-gray-700">{c.ip}</td>
-                                                        <td className="py-1.5 pr-2 text-gray-500">{c.count}</td>
-                                                        <td className={`py-1.5 pr-2 font-bold ${verdictColor[c.verdict]}`}>{verdictEmoji[c.verdict]} {c.verdict}</td>
-                                                        <td className="py-1.5 pr-2 text-gray-400">{c.country}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                        <div className="p-4 border-b border-gray-100">
+                            <p className="text-xs font-black text-gray-800">⬆️ Outbound External</p>
+                            <p className="text-[10px] text-gray-400 mb-3">Your endpoints connecting to the internet</p>
+                            <NetworkTable
+                                rows={network.external.outbound}
+                                locationLabel="Country"
+                                getLocation={(r) => r.country}
+                                getDirection={() => 'Outbound'}
+                                emptyText="No external outbound connections detected in the last 24 hours."
+                            />
+                        </div>
+                        <div className="p-4 md:border-r border-gray-100">
+                            <p className="text-xs font-black text-gray-800">🔄 Internal Connections</p>
+                            <p className="text-[10px] text-gray-400 mb-3">LAN traffic on your network</p>
+                            <NetworkTable
+                                rows={[
+                                    ...network.internal.inbound.map(r => ({ ...r, direction: 'inbound' as const })),
+                                    ...network.internal.outbound.map(r => ({ ...r, direction: 'outbound' as const })),
+                                ]}
+                                locationLabel="Network"
+                                getLocation={(r) => r.network}
+                                getDirection={(r) => r.direction}
+                                emptyText="No internal connections detected in the last 24 hours."
+                            />
+                        </div>
+                        <div className="p-4">
+                            <p className="text-xs font-black text-gray-800">📊 Summary</p>
+                            <p className="text-[10px] text-gray-400 mb-3">Last 24 hours</p>
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'External Inbound', value: network.summary.total_external_inbound },
+                                    { label: 'External Outbound', value: network.summary.total_external_outbound },
+                                    { label: 'Internal Connections', value: network.summary.total_internal },
+                                ].map(s => (
+                                    <div key={s.label} className="flex items-center justify-between text-[11px]">
+                                        <span className="text-gray-500">{s.label}</span>
+                                        <span className="font-bold text-gray-800">{s.value.toLocaleString()}</span>
                                     </div>
-                                )}
-                            </div>
-                            <div className="p-4">
-                                <p className="text-xs font-black text-gray-800">⬆️ Outbound</p>
-                                <p className="text-[10px] text-gray-400 mb-3">Your endpoints connecting to external IPs</p>
-                                {network.outbound.length === 0 ? (
-                                    <p className="text-[11px] text-gray-400 text-center py-6">No outbound connections in the last 24 hours.</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-[11px]">
-                                            <thead><tr className="border-b border-gray-100">
-                                                {['IP Address', 'Count', 'Verdict', 'Port'].map(h => (
-                                                    <th key={h} className="text-left py-1.5 pr-2 text-[9px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-                                                ))}
-                                            </tr></thead>
-                                            <tbody>
-                                                {network.outbound.map(c => (
-                                                    <tr key={c.ip} className="border-b border-gray-50">
-                                                        <td className="py-1.5 pr-2 font-mono text-gray-700">{c.ip}</td>
-                                                        <td className="py-1.5 pr-2 text-gray-500">{c.count}</td>
-                                                        <td className={`py-1.5 pr-2 font-bold ${verdictColor[c.verdict]}`}>{verdictEmoji[c.verdict]} {c.verdict}</td>
-                                                        <td className="py-1.5 pr-2 text-gray-400">{c.port}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
+                                ))}
+                                <div className="flex items-center justify-between text-[11px] pt-2 border-t border-gray-100">
+                                    <span className="text-gray-500">Known Malicious IPs</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${network.summary.malicious_detected > 0 ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-gray-50 text-gray-400 border border-gray-200'}`}>
+                                        {network.summary.malicious_detected}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
 

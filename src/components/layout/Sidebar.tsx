@@ -77,6 +77,7 @@ const PORTAL_SECTIONS: NavSection[] = [
         items: [
             { label: 'Dashboard', href: '/', icon: LayoutDashboard },
             { label: 'Incidents', href: '/security-operations/incidents', icon: AlertTriangle },
+            { label: 'Asset Inventory', href: '/assets', icon: Monitor },
             { label: 'Account', href: '/account', icon: User },
         ],
     },
