@@ -71,15 +71,21 @@ function search(body: unknown): Promise<SearchResponse | null> {
 export async function GET(req: NextRequest) {
     try {
         const group = req.nextUrl.searchParams.get('group');
+        const severity = req.nextUrl.searchParams.get('severity');
         const agentNames = group ? await getAgentNamesForGroup(group) : null;
 
-        const query = agentNames
-            ? { bool: { must: [{ terms: { 'agent.name': agentNames } }] } }
-            : { match_all: {} };
+        const groupFilters: Record<string, unknown>[] = [];
+        if (agentNames) groupFilters.push({ terms: { 'agent.name': agentNames } });
+
+        const aggsQuery = groupFilters.length ? { bool: { must: groupFilters } } : { match_all: {} };
+
+        const hitsFilters = [...groupFilters];
+        if (severity) hitsFilters.push({ term: { 'vulnerability.severity': severity } });
+        const hitsQuery = hitsFilters.length ? { bool: { must: hitsFilters } } : { match_all: {} };
 
         const [hitsRes, aggsRes] = await Promise.allSettled([
             search({
-                size: 20,
+                size: 50,
                 sort: [{ 'vulnerability.score.base': { order: 'desc' } }],
                 _source: [
                     'vulnerability.id',
@@ -91,11 +97,11 @@ export async function GET(req: NextRequest) {
                     'package.version',
                     'agent.name',
                 ],
-                query,
+                query: hitsQuery,
             }),
             search({
                 size: 0,
-                query,
+                query: aggsQuery,
                 aggs: { by_severity: { terms: { field: 'vulnerability.severity' } } },
             }),
         ]).then((results) => results.map((r) => (r.status === 'fulfilled' ? r.value : null)));
