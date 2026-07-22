@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
 type CVE = {
     id: string; cvss: number; severity: string; description: string;
@@ -32,6 +33,20 @@ const SEV_COLOR: Record<string, string> = {
     Medium:   'bg-amber-50 text-amber-600 border-amber-200',
 };
 
+type WazuhVuln = {
+    cve: string; title: string; severity: string; cvss_score: number | null;
+    package: string; version: string; agent: string; status: string;
+};
+
+type WazuhVulnSummary = { critical: number; high: number; medium: number; low: number; total: number };
+
+const WAZUH_SEV_COLOR: Record<string, string> = {
+    Critical: 'bg-red-50 text-red-600 border-red-200',
+    High:     'bg-orange-50 text-orange-600 border-orange-200',
+    Medium:   'bg-amber-50 text-amber-600 border-amber-200',
+    Low:      'bg-gray-100 text-gray-500 border-gray-200',
+};
+
 function scoreColor(s: number) {
     if (s >= 80) return 'text-red-600 font-black';
     if (s >= 60) return 'text-orange-600 font-bold';
@@ -42,6 +57,23 @@ export default function CVETrackerPage() {
     const [sevFilter, setSevFilter] = useState('All');
     const [kevFilter, setKevFilter] = useState('All');
     const [search, setSearch] = useState('');
+
+    const [wazuhVulns, setWazuhVulns] = useState<WazuhVuln[] | null>(null);
+    const [wazuhSummary, setWazuhSummary] = useState<WazuhVulnSummary | null>(null);
+
+    useEffect(() => {
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/vulnerabilities${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => {
+                setWazuhVulns(Array.isArray(data?.vulnerabilities) ? data.vulnerabilities : []);
+                setWazuhSummary(data?.summary ?? null);
+            })
+            .catch(() => {
+                setWazuhVulns([]);
+                setWazuhSummary(null);
+            });
+    }, []);
 
     const filtered = CVES.filter(c => {
         const q = search.toLowerCase();
@@ -55,8 +87,65 @@ export default function CVETrackerPage() {
         <PageLayout title="CVE Tracker">
             <div className="space-y-5">
                 <div>
-                    <h1 className="text-lg font-black text-gray-900">CVE Tracker</h1>
-                    <p className="text-xs text-gray-400">Exposure Monitoring · Vulnerability tracking with Cybernovr Risk Scoring</p>
+                    <h1 className="text-lg font-black text-gray-900">Vulnerabilities Detected on Your Endpoints</h1>
+                    <p className="text-xs text-gray-400">Live vulnerability scan results from Wazuh agents on monitored machines</p>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3">
+                    {[
+                        { label: 'Critical',        value: wazuhSummary ? wazuhSummary.critical.toLocaleString() : '...', color: 'text-red-600' },
+                        { label: 'High',             value: wazuhSummary ? wazuhSummary.high.toLocaleString() : '...',     color: 'text-orange-600' },
+                        { label: 'Medium',           value: wazuhSummary ? wazuhSummary.medium.toLocaleString() : '...',   color: 'text-amber-600' },
+                        { label: 'Total Detected',   value: wazuhSummary ? wazuhSummary.total.toLocaleString() : '...',    color: 'text-blue-700' },
+                    ].map(k => (
+                        <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
+                            <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 -mt-4 -mx-4 mb-4 rounded-t-xl" />
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{k.label}</p>
+                            <p className={`text-2xl font-black ${k.color}`}>{k.value}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                    {wazuhVulns !== null && wazuhVulns.length === 0 ? (
+                        <div className="p-8 text-center">
+                            <p className="text-xs font-semibold text-gray-500">No vulnerabilities detected on monitored endpoints.</p>
+                            <p className="text-[11px] text-gray-400 mt-1">Vulnerability scanning runs automatically on all connected agents.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="border-b border-gray-200">
+                                        {['CVE ID', 'Title', 'Severity', 'CVSS Score', 'Affected Package', 'Agent', 'Status'].map(h => (
+                                            <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(wazuhVulns ?? []).map((v, i) => (
+                                        <tr key={`${v.cve}-${i}`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-mono font-bold text-blue-700 whitespace-nowrap">{v.cve || '—'}</td>
+                                            <td className="px-4 py-3 text-gray-700 max-w-[320px] truncate" title={v.title}>{v.title || '—'}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${WAZUH_SEV_COLOR[v.severity] ?? WAZUH_SEV_COLOR.Low}`}>{v.severity || 'Unknown'}</span>
+                                            </td>
+                                            <td className="px-4 py-3 font-bold text-gray-800">{v.cvss_score != null ? v.cvss_score.toFixed(1) : '—'}</td>
+                                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{v.package ? `${v.package} ${v.version}` : '—'}</td>
+                                            <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{v.agent || '—'}</td>
+                                            <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{v.status || '—'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
+                <div className="pt-2">
+                    <h2 className="text-lg font-black text-gray-900">CVE Tracker</h2>
+                    <p className="text-xs text-gray-400">Exposure Monitoring · Global CTIP CVE database with Cybernovr Risk Scoring</p>
                 </div>
 
                 <div className="grid grid-cols-4 gap-3">
