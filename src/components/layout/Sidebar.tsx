@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, AlertTriangle, Monitor, Bell, Shield, Radio, Search,
     Building2, CheckSquare, Bug, Zap, FileText, Target, Users, UserCog, Settings,
-    Activity, Brain, ChevronDown, ChevronUp, User,
+    Activity, Brain, ChevronDown, ChevronUp, User, FileDown, Globe, Fingerprint,
     type LucideIcon,
 } from 'lucide-react';
 import { getPortalContext, type PortalContext } from '@/lib/portal-context';
@@ -41,6 +41,8 @@ const ADMIN_SECTIONS: NavSection[] = [
             { label: 'Threat Management', href: '/threat-intelligence/threats', icon: Shield },
             { label: 'CTI Feed', href: '/threat-intelligence/cti', icon: Radio },
             { label: 'URL Scanner', href: '/threat-intelligence/url-scan', icon: Search },
+            { label: 'DNS Suite', href: '/threat-intelligence/dns', icon: Globe },
+            { label: 'Domain Suite', href: '/threat-intelligence/domains', icon: Fingerprint },
             { label: 'Campaigns', href: '/threat-intelligence/campaigns', icon: Activity },
         ],
     },
@@ -57,6 +59,7 @@ const ADMIN_SECTIONS: NavSection[] = [
         items: [
             { label: 'SOAR', href: '/protection/soar', icon: Zap },
             { label: 'Reports', href: '/reporting', icon: FileText },
+            { label: 'Security Reports', href: '/reports', icon: FileDown },
             { label: 'NovrAI', href: '/novr-ai', icon: Brain },
             { label: 'Account Overview', href: '/account', icon: User },
         ],
@@ -78,6 +81,7 @@ const PORTAL_SECTIONS: NavSection[] = [
             { label: 'Dashboard', href: '/', icon: LayoutDashboard },
             { label: 'Incidents', href: '/security-operations/incidents', icon: AlertTriangle },
             { label: 'Asset Inventory', href: '/assets', icon: Monitor },
+            { label: 'Security Reports', href: '/reports', icon: FileDown },
             { label: 'Account', href: '/account', icon: User },
         ],
     },
@@ -88,6 +92,8 @@ const PORTAL_SECTIONS: NavSection[] = [
             { label: 'Threat Management', href: '/threat-intelligence/threats', icon: Shield },
             { label: 'CTI Feed', href: '/threat-intelligence/cti', icon: Radio },
             { label: 'URL Scanner', href: '/threat-intelligence/url-scan', icon: Search },
+            { label: 'DNS Suite', href: '/threat-intelligence/dns', icon: Globe },
+            { label: 'Domain Suite', href: '/threat-intelligence/domains', icon: Fingerprint },
         ],
     },
 ];

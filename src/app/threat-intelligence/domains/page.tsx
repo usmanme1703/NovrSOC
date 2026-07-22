@@ -1,158 +1,290 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageLayout } from '@/components/layout/PageLayout';
+import { getPortalContext } from '@/lib/portal-context';
 
-const MONITORED = [
-    { domain: 'cybernovr.com', status: 'Active', ssl: 'Valid', expiry: '180 days', lastChecked: '2 min ago', risk: 'Low', riskLevel: 'low' },
-    { domain: 'novrsoc.com', status: 'Active', ssl: 'Valid', expiry: '90 days', lastChecked: '2 min ago', risk: 'Low', riskLevel: 'low' },
-    { domain: 'cybernovr.ng', status: 'Active', ssl: 'Valid', expiry: '45 days', lastChecked: '5 min ago', risk: 'Medium', riskLevel: 'medium' },
-    { domain: 'cybernovr.africa', status: 'Active', ssl: 'Valid', expiry: '220 days', lastChecked: '5 min ago', risk: 'Low', riskLevel: 'low' },
-    { domain: 'novrsoc.ng', status: 'Active', ssl: 'Valid', expiry: '65 days', lastChecked: '10 min ago', risk: 'Low', riskLevel: 'low' },
-];
+interface WhoisInfo {
+    registrar: string | null;
+    registered: string | null;
+    expires: string | null;
+    days_until_expiry: number | null;
+}
 
-const TYPOSQUATS = [
-    { domain: 'cybern0vr.com', status: 'Active — Suspicious', registered: '15 Jun 2026', action: 'Alert sent', risk: 'Critical' },
-    { domain: 'cybernovrsoc.com', status: 'Registered — Monitor', registered: '01 Jun 2026', action: 'Monitoring', risk: 'High' },
-    { domain: 'cyber-novr.com', status: 'Registered — Monitor', registered: '10 May 2026', action: 'Monitoring', risk: 'Medium' },
-    { domain: 'cybernovr-ng.com', status: 'Registered — Monitor', registered: '22 May 2026', action: 'Takedown requested', risk: 'High' },
-];
+interface ThreatIntel {
+    domain_in_ctip: boolean;
+    verdict: string;
+    malicious_ips: string[];
+}
 
-const RISK_BADGE: Record<string, string> = {
-    low: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-    medium: 'text-amber-600 bg-amber-50 border-amber-200',
-    high: 'text-orange-600 bg-orange-50 border-orange-200',
-    Critical: 'text-red-600 bg-red-50 border-red-200',
-    High: 'text-orange-600 bg-orange-50 border-orange-200',
-    Medium: 'text-amber-600 bg-amber-50 border-amber-200',
-};
+interface DomainAnalysisResult {
+    domain: string;
+    whois: WhoisInfo;
+    subdomains: string[];
+    ip_addresses: string[];
+    threat_intel: ThreatIntel;
+    risk_score: number;
+    risk_factors: string[];
+}
+
+function formatDate(iso: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function riskBadge(score: number): { label: string; style: string } {
+    if (score >= 60) return { label: 'High Risk', style: 'bg-red-50 text-red-600 border-red-200' };
+    if (score >= 25) return { label: 'Moderate Risk', style: 'bg-amber-50 text-amber-600 border-amber-200' };
+    return { label: 'Low Risk', style: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+}
+
+const SUSPICIOUS_KEYWORDS = ['login', 'secure', 'verify', 'account', 'update', 'confirm', 'signin', 'billing', 'reset'];
 
 export default function DomainsPage() {
-    const [showAdd, setShowAdd] = useState(false);
+    const router = useRouter();
+    const [domain, setDomain] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<DomainAnalysisResult | null>(null);
+
+    const analyse = async () => {
+        const target = domain.trim();
+        if (!target) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const orgId = getPortalContext().orgId;
+            const res = await fetch('/api/domains/analyse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ domain: target, ...(orgId ? { orgId } : {}) }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error ?? 'Domain analysis failed');
+            setResult(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Domain analysis failed');
+            setResult(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const badge = result ? riskBadge(result.risk_score) : null;
+    const recentlyRegistered = result?.whois.registered
+        ? (Date.now() - new Date(result.whois.registered).getTime()) < 30 * 24 * 60 * 60 * 1000
+        : false;
+    const hasValidCert = result ? !result.risk_factors.includes('No valid SSL certificate found') : false;
+    const suspiciousSubdomains = result ? result.subdomains.filter((s) => SUSPICIOUS_KEYWORDS.some((kw) => s.includes(kw))) : [];
 
     return (
-        <PageLayout title="Domain Monitoring">
+        <PageLayout title="Domain Intelligence Suite">
             <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h1 className="text-lg font-black text-gray-900">Domain Monitoring</h1>
-                        <p className="text-xs text-gray-500">Threat Intelligence · Monitor owned domains and detect typosquatting impersonators</p>
-                    </div>
-                    <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors">+ Add Domain</button>
+                <div>
+                    <h1 className="text-lg font-black text-gray-900">Domain Intelligence Suite</h1>
+                    <p className="text-xs text-gray-500">Subdomain discovery, WHOIS lookup, and threat analysis</p>
                 </div>
 
-                {/* Monitored domains */}
+                {/* Search bar */}
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
-                    <div className="p-4 border-b border-gray-100">
-                        <p className="text-xs font-black text-gray-800">Monitored Domains ({MONITORED.length})</p>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="border-b border-gray-200">
-                                    {['Domain', 'Status', 'SSL', 'Expiry', 'Last Checked', 'Risk', 'Actions'].map(h => (
-                                        <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {MONITORED.map(d => (
-                                    <tr key={d.domain} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3 font-mono font-bold text-gray-800">{d.domain}</td>
-                                        <td className="px-4 py-3"><span className="text-emerald-600 font-bold text-[10px]">🟢 {d.status}</span></td>
-                                        <td className="px-4 py-3"><span className="text-emerald-600 text-[10px]">✅ {d.ssl}</span></td>
-                                        <td className="px-4 py-3">
-                                            <span className={`text-[10px] font-bold ${parseInt(d.expiry) < 60 ? 'text-amber-600' : 'text-gray-600'}`}>{d.expiry}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-400">{d.lastChecked}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${RISK_BADGE[d.riskLevel]}`}>{d.risk}</span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <button className="text-[10px] font-bold text-blue-700 hover:underline">Details</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="p-5">
+                        <div className="flex gap-3">
+                            <input
+                                value={domain}
+                                onChange={(e) => setDomain(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && analyse()}
+                                placeholder="Enter domain to analyse (e.g. cybernovr.com)"
+                                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-mono text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-700/20 focus:border-blue-700"
+                            />
+                            <button
+                                onClick={analyse}
+                                disabled={loading || !domain.trim()}
+                                className="px-6 py-2.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white text-xs font-black rounded-lg transition-colors whitespace-nowrap"
+                            >
+                                {loading ? '⏳ Analysing…' : 'Analyse'}
+                            </button>
+                        </div>
+                        {error && <p className="text-[11px] text-red-600 mt-3">{error}</p>}
                     </div>
                 </div>
 
-                {/* Typosquat monitoring */}
-                <div className="bg-white border border-orange-200 rounded-xl overflow-hidden">
-                    <div className="h-[3px] bg-gradient-to-r from-orange-500 to-red-600" />
-                    <div className="p-4 border-b border-gray-100">
-                        <div className="flex items-center gap-2">
-                            <p className="text-xs font-black text-gray-800">Typosquat Detection</p>
-                            <span className="text-[9px] font-bold px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-full">{TYPOSQUATS.length} potential impersonators</span>
+                {result && badge && (
+                    <>
+                        {/* Overview */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                            <div className="p-5">
+                                <div className="flex items-start justify-between mb-4">
+                                    <p className="text-sm font-black text-gray-900 font-mono">{result.domain}</p>
+                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded border ${badge.style}`}>{badge.label} ({result.risk_score}/100)</span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[11px]">
+                                    <div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-1">Registrar</p>
+                                        <p className="text-gray-700 font-bold">{result.whois.registrar ?? 'Unknown'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-1">Registered</p>
+                                        <p className="text-gray-700 font-bold">{formatDate(result.whois.registered)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-1">Expires</p>
+                                        <p className="text-gray-700 font-bold">{formatDate(result.whois.expires)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-400 font-bold uppercase tracking-wider text-[9px] mb-1">Days Until Expiry</p>
+                                        <p className={`font-bold ${result.whois.days_until_expiry !== null && result.whois.days_until_expiry < 30 ? 'text-amber-600' : 'text-gray-700'}`}>
+                                            {result.whois.days_until_expiry ?? '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Domains registered that may be impersonating Cybernovr brands</p>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="border-b border-gray-100">
-                                    {['Domain', 'Status', 'Date Registered', 'Action Taken', 'Risk', 'Actions'].map(h => (
-                                        <th key={h} className="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+
+                        {/* Subdomains */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                            <div className="p-4 border-b border-gray-100">
+                                <p className="text-xs font-black text-gray-800">Discovered Subdomains ({result.subdomains.length})</p>
+                            </div>
+                            {result.subdomains.length === 0 ? (
+                                <p className="text-xs text-gray-400 text-center py-8">No subdomains discovered via Certificate Transparency logs</p>
+                            ) : (
+                                <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b border-gray-100">
+                                                {['Subdomain', 'Flag', 'Action'].map((h) => (
+                                                    <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {result.subdomains.map((sub) => {
+                                                const suspicious = SUSPICIOUS_KEYWORDS.some((kw) => sub.includes(kw));
+                                                return (
+                                                    <tr key={sub} className="border-b border-gray-50 hover:bg-gray-50">
+                                                        <td className="px-4 py-2 font-mono text-gray-700">{sub}</td>
+                                                        <td className="px-4 py-2">
+                                                            {suspicious && <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-200 rounded">⚠ Suspicious</span>}
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            <button
+                                                                onClick={() => router.push(`/threat-intelligence/dns?domain=${encodeURIComponent(sub)}`)}
+                                                                className="text-[10px] font-bold text-blue-700 hover:underline"
+                                                            >
+                                                                Run DNS Lookup
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* IP Addresses */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600" />
+                            <div className="p-4 border-b border-gray-100">
+                                <p className="text-xs font-black text-gray-800">Resolving IP Addresses ({result.ip_addresses.length})</p>
+                            </div>
+                            {result.ip_addresses.length === 0 ? (
+                                <p className="text-xs text-gray-400 text-center py-8">No IP addresses resolved</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b border-gray-100">
+                                                {['IP Address', 'Verdict'].map((h) => (
+                                                    <th key={h} className="text-left px-4 py-2.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {result.ip_addresses.map((ip) => {
+                                                const malicious = result.threat_intel.malicious_ips.includes(ip);
+                                                return (
+                                                    <tr key={ip} className="border-b border-gray-50 hover:bg-gray-50">
+                                                        <td className={`px-4 py-2 font-mono ${malicious ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{ip}</td>
+                                                        <td className="px-4 py-2">
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${malicious ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+                                                                {malicious ? '🔴 Malicious' : '🟢 Clean'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Threat Intelligence */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className={`h-[3px] ${result.threat_intel.domain_in_ctip ? 'bg-gradient-to-r from-red-600 to-red-700' : 'bg-gradient-to-r from-blue-700 via-violet-600 to-red-600'}`} />
+                            <div className="p-5">
+                                <p className="text-xs font-black text-gray-800 mb-3">Threat Intelligence</p>
+                                {result.threat_intel.domain_in_ctip ? (
+                                    <div className="space-y-1.5 text-[11px]">
+                                        <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                                            <span className="text-gray-400">Verdict</span>
+                                            <span className="font-bold text-red-600">{result.threat_intel.verdict}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-gray-50 pb-1.5">
+                                            <span className="text-gray-400">Source</span>
+                                            <span className="font-bold text-gray-700">CTIP Database</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-gray-400">Domain not found in threat intelligence database</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Risk Assessment */}
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className={`h-[3px] ${badge.style.includes('red') ? 'bg-gradient-to-r from-red-600 to-red-700' : badge.style.includes('amber') ? 'bg-gradient-to-r from-amber-500 to-amber-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'}`} />
+                            <div className="p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <p className="text-xs font-black text-gray-800">Risk Assessment</p>
+                                    <span className="text-lg font-black text-gray-900">{result.risk_score}/100</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {[
+                                        { label: 'Domain registered recently (< 30 days)', bad: recentlyRegistered },
+                                        { label: 'Domain in CTIP blocklist', bad: result.threat_intel.domain_in_ctip },
+                                        { label: 'Valid SSL certificate', bad: !hasValidCert },
+                                        { label: 'Resolving IPs clean', bad: result.threat_intel.malicious_ips.length > 0 },
+                                        { label: 'No suspicious subdomains', bad: suspiciousSubdomains.length > 0 },
+                                    ].map((c) => (
+                                        <div key={c.label} className="flex items-center gap-2 text-[11px] border-b border-gray-50 pb-1.5">
+                                            <span>{c.bad ? '❌' : '✅'}</span>
+                                            <span className="text-gray-600">{c.label}</span>
+                                        </div>
                                     ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {TYPOSQUATS.map(d => (
-                                    <tr key={d.domain} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3 font-mono font-bold text-red-600">{d.domain}</td>
-                                        <td className="px-4 py-3 text-orange-600 font-bold text-[10px]">{d.status}</td>
-                                        <td className="px-4 py-3 text-gray-500">{d.registered}</td>
-                                        <td className="px-4 py-3 text-gray-600">{d.action}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${RISK_BADGE[d.risk]}`}>{d.risk}</span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-2">
-                                                <button className="text-[10px] font-bold text-red-600 hover:underline">Takedown</button>
-                                                <button className="text-[10px] font-bold text-gray-400 hover:text-gray-700">Monitor</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                </div>
+                                {result.risk_factors.length > 0 && (
+                                    <div className="mt-4 pt-3 border-t border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Risk Factors</p>
+                                        <ul className="space-y-1">
+                                            {result.risk_factors.map((f) => (
+                                                <li key={f} className="text-[11px] text-red-600">• {f}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
-
-            {showAdd && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl border border-gray-200 w-full max-w-md shadow-2xl">
-                        <div className="h-[3px] bg-gradient-to-r from-blue-700 via-violet-600 to-red-600 rounded-t-2xl" />
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-black text-gray-900">Add Domain to Monitor</h3>
-                                <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                            </div>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Domain</label>
-                                    <input type="text" placeholder="yourdomain.com" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-700/20" />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Monitoring Type</label>
-                                    <select className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 focus:outline-none">
-                                        <option>SSL + Uptime + Typosquat</option>
-                                        <option>SSL + Uptime only</option>
-                                        <option>Typosquat detection only</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex gap-3 mt-5">
-                                <button onClick={() => setShowAdd(false)} className="flex-1 py-2 border border-gray-200 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-                                <button onClick={() => setShowAdd(false)} className="flex-1 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors">Add Domain</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </PageLayout>
     );
 }
