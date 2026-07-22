@@ -425,7 +425,8 @@ export const GeneralDashboard = () => {
             .catch(() => {});
     }, []);
 
-    const [trendData, setTrendData] = useState<{ week: string; alerts: number; incidents: number }[] | null>(null);
+    const [trendData, setTrendData] = useState<{ week: string; alerts: number; incidents: number; critical: number }[] | null>(null);
+    const [trendLoading, setTrendLoading] = useState(true);
 
     useEffect(() => {
         fetch('/api/wazuh/trend', { cache: 'no-store' })
@@ -433,7 +434,8 @@ export const GeneralDashboard = () => {
             .then(data => {
                 if (Array.isArray(data) && data.length > 0) setTrendData(data);
             })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => setTrendLoading(false));
     }, []);
 
     const [ctipCountries, setCtipCountries] = useState<CtipCountry[] | null>(null);
@@ -484,9 +486,14 @@ export const GeneralDashboard = () => {
     const trendBars = trendData
         ? (() => {
             const maxAlerts = Math.max(...trendData.map(d => d.alerts), 1);
-            return trendData.map(d => ({ heightPct: Math.max(4, Math.round((d.alerts / maxAlerts) * 100)), label: d.week }));
+            return trendData.map(d => ({
+                heightPct: Math.max(4, Math.round((d.alerts / maxAlerts) * 100)),
+                label: d.week,
+                title: `${d.alerts} alerts, ${d.incidents} high severity, ${d.critical} critical`,
+                critical: d.critical > 0,
+            }));
         })()
-        : [40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => ({ heightPct: val, label: `W${i + 1}` }));
+        : [40, 55, 30, 85, 42, 60, 70, 95, 45, 60, 80, 100].map((val, i) => ({ heightPct: val, label: `W${i + 1}`, title: undefined, critical: false }));
 
     const hasClients = (clients?.length ?? 0) > 0;
     const critical = criticalAlertsCount ?? 0;
@@ -571,14 +578,25 @@ export const GeneralDashboard = () => {
             <OnboardedClientsWidget clients={clients} loading={clientsLoading} />
 
             <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
-                <div className="w-full h-full flex items-end gap-2 pt-4">
-                    {trendBars.map((bar, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center group">
-                            <div style={{ height: `${bar.heightPct}%`, backgroundColor: '#1d4ed8' }} className="w-full rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200" />
-                            <span className="text-[9px] text-slate-500 mt-1.5 font-medium">{bar.label}</span>
-                        </div>
-                    ))}
-                </div>
+                {trendLoading ? (
+                    <div className="w-full h-full flex items-end gap-2 pt-4">
+                        {Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center">
+                                <div style={{ height: `${30 + (i % 5) * 10}%` }} className="w-full rounded-t bg-slate-200 animate-pulse" />
+                                <span className="text-[9px] text-slate-300 mt-1.5 font-medium">&nbsp;</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="w-full h-full flex items-end gap-2 pt-4">
+                        {trendBars.map((bar, i) => (
+                            <div key={i} className="flex-1 flex flex-col items-center group" title={bar.title}>
+                                <div style={{ height: `${bar.heightPct}%`, backgroundColor: bar.critical ? '#dc2626' : '#1d4ed8' }} className="w-full rounded-t opacity-70 group-hover:opacity-100 transition-all duration-200" />
+                                <span className="text-[9px] text-slate-500 mt-1.5 font-medium">{bar.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </ChartWrapper>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

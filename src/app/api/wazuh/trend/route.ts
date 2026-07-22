@@ -11,6 +11,7 @@ interface Bucket {
     key_as_string?: string;
     doc_count?: number;
     high_severity?: { doc_count?: number };
+    critical?: { doc_count?: number };
 }
 
 interface SearchResponse {
@@ -72,6 +73,7 @@ export async function GET() {
                     },
                     aggs: {
                         high_severity: { filter: { range: { 'rule.level': { gte: 7 } } } },
+                        critical: { filter: { range: { 'rule.level': { gte: 12 } } } },
                     },
                 },
             },
@@ -81,9 +83,10 @@ export async function GET() {
         const trend = buckets.slice(-12).map((b) => {
             const date = b.key_as_string ? new Date(b.key_as_string) : null;
             return {
-                week: date ? date.toLocaleDateString('en-US', { weekday: 'short' }) : '—',
+                week: date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
                 alerts: b.doc_count ?? 0,
                 incidents: b.high_severity?.doc_count ?? 0,
+                critical: b.critical?.doc_count ?? 0,
             };
         });
 
