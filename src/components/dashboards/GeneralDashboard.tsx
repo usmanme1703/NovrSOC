@@ -370,10 +370,15 @@ export const GeneralDashboard = () => {
     const [wazuhAlerts, setWazuhAlerts] = useState<typeof generalActivityLog | null>(null);
     const [criticalAlertsCount, setCriticalAlertsCount] = useState<number | null>(null);
     const [openIncidentsCount, setOpenIncidentsCount] = useState<number | null>(null);
+    const [feedRange, setFeedRange] = useState<'1h' | '24h' | '7d'>('24h');
+    const [feedLoading, setFeedLoading] = useState(true);
 
     useEffect(() => {
         const group = getPortalContext().wazuhGroup;
-        fetch(`/api/wazuh/alerts-indexer${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
+        setFeedLoading(true);
+        const params = new URLSearchParams({ minLevel: '7', range: feedRange });
+        if (group) params.set('group', group);
+        fetch(`/api/wazuh/alerts-indexer?${params.toString()}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 const hits = data?.hits;
@@ -394,8 +399,9 @@ export const GeneralDashboard = () => {
                 if (typeof data?.criticalCount === 'number') setCriticalAlertsCount(data.criticalCount);
                 if (typeof data?.openIncidentsCount === 'number') setOpenIncidentsCount(data.openIncidentsCount);
             })
-            .catch(() => setWazuhAlerts([]));
-    }, []);
+            .catch(() => setWazuhAlerts([]))
+            .finally(() => setFeedLoading(false));
+    }, [feedRange]);
 
     const [threatVectors, setThreatVectors] = useState<{ label: string; pct: number; color: string }[] | null>(null);
 
@@ -425,18 +431,23 @@ export const GeneralDashboard = () => {
             .catch(() => {});
     }, []);
 
-    const [trendData, setTrendData] = useState<{ week: string; alerts: number; incidents: number; critical: number }[] | null>(null);
+    const [trendData, setTrendData] = useState<{ label: string; alerts: number; incidents: number; critical: number }[] | null>(null);
     const [trendLoading, setTrendLoading] = useState(true);
+    const [trendRange, setTrendRange] = useState<'24h' | '7d' | '30d'>('7d');
 
     useEffect(() => {
-        fetch('/api/wazuh/trend', { cache: 'no-store' })
+        const group = getPortalContext().wazuhGroup;
+        setTrendLoading(true);
+        const params = new URLSearchParams({ range: trendRange });
+        if (group) params.set('group', group);
+        fetch(`/api/wazuh/trend?${params.toString()}`, { cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
-                if (Array.isArray(data) && data.length > 0) setTrendData(data);
+                setTrendData(Array.isArray(data) && data.length > 0 ? data : null);
             })
-            .catch(() => {})
+            .catch(() => setTrendData(null))
             .finally(() => setTrendLoading(false));
-    }, []);
+    }, [trendRange]);
 
     const [ctipCountries, setCtipCountries] = useState<CtipCountry[] | null>(null);
 
@@ -488,7 +499,7 @@ export const GeneralDashboard = () => {
             const maxAlerts = Math.max(...trendData.map(d => d.alerts), 1);
             return trendData.map(d => ({
                 heightPct: Math.max(4, Math.round((d.alerts / maxAlerts) * 100)),
-                label: d.week,
+                label: d.label,
                 title: `${d.alerts} alerts, ${d.incidents} high severity, ${d.critical} critical`,
                 critical: d.critical > 0,
             }));
@@ -577,7 +588,19 @@ export const GeneralDashboard = () => {
 
             <OnboardedClientsWidget clients={clients} loading={clientsLoading} />
 
-            <ChartWrapper title="Security Posture & Incident Activity Trends (Last 30 Days)">
+            <ChartWrapper title="Security Posture & Incident Activity Trends">
+                <div className="flex items-center gap-2 mb-3">
+                    {([['24h', 'Last 24 Hours'], ['7d', 'Last 7 Days'], ['30d', 'Last 30 Days']] as const).map(([val, label]) => (
+                        <button key={val} onClick={() => setTrendRange(val)}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded border transition-colors ${
+                                trendRange === val
+                                    ? 'bg-[#1d4ed8] text-white border-[#1d4ed8]'
+                                    : 'bg-white border-slate-300 text-slate-600 hover:text-slate-800'
+                            }`}>
+                            {label}
+                        </button>
+                    ))}
+                </div>
                 {trendLoading ? (
                     <div className="w-full h-full flex items-end gap-2 pt-4">
                         {Array.from({ length: 12 }).map((_, i) => (
@@ -628,7 +651,24 @@ export const GeneralDashboard = () => {
                 </div>
             </div>
 
-            {wazuhAlerts !== null && wazuhAlerts.length === 0 ? (
+            <div className="flex items-center justify-end gap-2">
+                {([['1h', 'Last 1hr'], ['24h', 'Last 24hr'], ['7d', 'Last 7 days']] as const).map(([val, label]) => (
+                    <button key={val} onClick={() => setFeedRange(val)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded border transition-colors ${
+                            feedRange === val
+                                ? 'bg-[#1d4ed8] text-white border-[#1d4ed8]'
+                                : 'bg-white border-slate-300 text-slate-600 hover:text-slate-800'
+                        }`}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+
+            {feedLoading ? (
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-2">
+                    {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-6 bg-slate-100 rounded animate-pulse" />)}
+                </div>
+            ) : wazuhAlerts !== null && wazuhAlerts.length === 0 ? (
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-10 text-center">
                     <p className="text-xs text-slate-400 max-w-sm mx-auto">
                         No recent high-severity activity. Onboard clients to begin monitoring their environments.

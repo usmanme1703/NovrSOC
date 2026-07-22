@@ -65,14 +65,21 @@ function countByLevel(minLevel: number, agentNames: string[] | null) {
     return search({ size: 0, track_total_hits: true, query: { bool: { must } } });
 }
 
+const RANGE_MAP: Record<string, string> = { '1h': 'now-1h', '24h': 'now-24h', '7d': 'now-7d' };
+
 export async function GET(req: NextRequest) {
     try {
         const group = req.nextUrl.searchParams.get('group');
         const agentNames = group ? await getAgentNamesForGroup(group) : null;
         const minLevelParam = req.nextUrl.searchParams.get('minLevel');
         const minLevel = minLevelParam !== null ? Number(minLevelParam) : 7;
+        const rangeParam = req.nextUrl.searchParams.get('range');
+        const since = RANGE_MAP[rangeParam ?? '24h'] ?? RANGE_MAP['24h'];
 
-        const hitsMust: unknown[] = [{ range: { 'rule.level': { gte: minLevel } } }];
+        const hitsMust: unknown[] = [
+            { range: { 'rule.level': { gte: minLevel } } },
+            { range: { timestamp: { gte: since } } },
+        ];
         if (agentNames) hitsMust.push({ terms: { 'agent.name': agentNames } });
 
         const [alertsRes, criticalRes, openRes] = await Promise.allSettled([

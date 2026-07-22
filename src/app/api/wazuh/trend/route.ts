@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
+import { getAgentNamesForGroup } from '@/lib/wazuh-group';
 
 const INDEXER_HOST = process.env.WAZUH_INDEXER_HOST || '164.92.203.205';
 const INDEXER_PORT = Number(process.env.WAZUH_INDEXER_PORT || 9200);
@@ -15,7 +16,7 @@ interface Bucket {
 }
 
 interface SearchResponse {
-    aggregations?: { alerts_per_day?: { buckets?: Bucket[] } };
+    aggregations?: { alerts_over_time?: { buckets?: Bucket[] } };
 }
 
 function search(body: unknown): Promise<SearchResponse | null> {
@@ -59,17 +60,33 @@ function search(body: unknown): Promise<SearchResponse | null> {
     });
 }
 
-export async function GET() {
+const RANGE_CONFIG: Record<string, { interval: 'hour' | 'day'; min: string; count: number }> = {
+    '24h': { interval: 'hour', min: 'now-24h', count: 24 },
+    '7d': { interval: 'day', min: 'now-7d', count: 7 },
+    '30d': { interval: 'day', min: 'now-30d', count: 30 },
+};
+
+export async function GET(req: NextRequest) {
     try {
+        const rangeParam = req.nextUrl.searchParams.get('range');
+        const config = RANGE_CONFIG[rangeParam ?? '7d'] ?? RANGE_CONFIG['7d'];
+        const group = req.nextUrl.searchParams.get('group');
+        const agentNames = group ? await getAgentNamesForGroup(group) : null;
+
+        const must: unknown[] = [{ range: { timestamp: { gte: config.min } } }];
+        if (agentNames) must.push({ terms: { 'agent.name': agentNames } });
+        const query = { bool: { must } };
+
         const res = await search({
             size: 0,
+            query,
             aggs: {
-                alerts_per_day: {
+                alerts_over_time: {
                     date_histogram: {
                         field: 'timestamp',
-                        calendar_interval: 'day',
+                        calendar_interval: config.interval,
                         min_doc_count: 0,
-                        extended_bounds: { min: 'now-12d/d', max: 'now/d' },
+                        extended_bounds: { min: config.min, max: 'now' },
                     },
                     aggs: {
                         high_severity: { filter: { range: { 'rule.level': { gte: 7 } } } },
@@ -79,11 +96,16 @@ export async function GET() {
             },
         });
 
-        const buckets = res?.aggregations?.alerts_per_day?.buckets ?? [];
-        const trend = buckets.slice(-12).map((b) => {
+        const buckets = res?.aggregations?.alerts_over_time?.buckets ?? [];
+        const trend = buckets.slice(-config.count).map((b) => {
             const date = b.key_as_string ? new Date(b.key_as_string) : null;
+            const label = date
+                ? config.interval === 'hour'
+                    ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                : '—';
             return {
-                week: date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
+                label,
                 alerts: b.doc_count ?? 0,
                 incidents: b.high_severity?.doc_count ?? 0,
                 critical: b.critical?.doc_count ?? 0,
