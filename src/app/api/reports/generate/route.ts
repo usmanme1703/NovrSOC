@@ -142,6 +142,10 @@ export async function POST(req: NextRequest) {
             aggs: {
                 per_day: {
                     date_histogram: { field: 'timestamp', calendar_interval: 'day', min_doc_count: 0 },
+                    aggs: {
+                        critical: { filter: { range: { 'rule.level': { gte: 12 } } } },
+                        high: { filter: { range: { 'rule.level': { gte: 10, lt: 12 } } } },
+                    },
                 },
             },
         }),
@@ -175,10 +179,13 @@ export async function POST(req: NextRequest) {
 
     const active_assets = (activeAssetsRes?.aggregations as { distinct_assets?: { value?: number } } | undefined)?.distinct_assets?.value ?? 0;
 
-    const dailyBuckets = (dailyRes?.aggregations as { per_day?: { buckets?: { key_as_string?: string; doc_count: number }[] } } | undefined)?.per_day?.buckets ?? [];
+    type DailyBucket = { key_as_string?: string; doc_count: number; critical?: { doc_count?: number }; high?: { doc_count?: number } };
+    const dailyBuckets = (dailyRes?.aggregations as { per_day?: { buckets?: DailyBucket[] } } | undefined)?.per_day?.buckets ?? [];
     const daily_alerts = dailyBuckets.map((b) => ({
         date: b.key_as_string ? new Date(b.key_as_string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
         count: b.doc_count,
+        critical: b.critical?.doc_count ?? 0,
+        high: b.high?.doc_count ?? 0,
     }));
 
     const vulnHits = (vulnTopRes?.hits as { hits?: { _source?: Record<string, unknown> }[] } | undefined)?.hits ?? [];

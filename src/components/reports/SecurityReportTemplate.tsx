@@ -14,7 +14,7 @@ export interface ReportData {
         top_incidents: { description: string; count: number; severity: string; agent: string }[];
         active_assets: number;
         vulnerability_count: number;
-        daily_alerts: { date: string; count: number }[];
+        daily_alerts: { date: string; count: number; critical: number; high: number }[];
         top_vulnerabilities: { cve: string; severity: string; cvss_score: number | null; package: string; status: string }[];
     };
     ctip: {
@@ -67,11 +67,14 @@ export function SecurityReportTemplate({ report }: { report: ReportData }) {
 
     const criticalOrHighVulns = wazuh.top_vulnerabilities.filter((v) => v.severity === 'Critical' || v.severity === 'High');
 
-    const recommendations: string[] = [];
-    if (wazuh.critical_alerts > 0) recommendations.push(`Immediate investigation required for ${wazuh.critical_alerts} critical incident${wazuh.critical_alerts === 1 ? '' : 's'}.`);
-    if (wazuh.vulnerability_count > 10) recommendations.push('Patch management review recommended given the volume of open vulnerabilities.');
-    if (wazuh.active_assets === 0) recommendations.push('Deploy monitoring agents on all endpoints — no active assets were observed this period.');
-    recommendations.push('Review and update incident response playbooks.');
+    const recommendations: { text: string; urgent: boolean }[] = [
+        { text: 'Continue regular security awareness training', urgent: false },
+        { text: 'Maintain current patch management schedule', urgent: false },
+    ];
+    if (wazuh.critical_alerts > 0) recommendations.push({ text: `URGENT: ${wazuh.critical_alerts} critical incident${wazuh.critical_alerts === 1 ? '' : 's'} require immediate investigation`, urgent: true });
+    if (wazuh.high_alerts > 5) recommendations.push({ text: `Review and remediate ${wazuh.high_alerts} high-severity security events`, urgent: true });
+    if (wazuh.vulnerability_count > 5) recommendations.push({ text: `Prioritise patching ${wazuh.vulnerability_count} identified software vulnerabilities`, urgent: true });
+    if (wazuh.active_assets === 0) recommendations.push({ text: 'Deploy monitoring agents on all endpoints immediately', urgent: true });
 
     const generatedDate = new Date(report.generated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -79,6 +82,7 @@ export function SecurityReportTemplate({ report }: { report: ReportData }) {
         <div className="report-root bg-white text-slate-900">
             {/* Cover Page */}
             <Page>
+                <div className="absolute top-0 left-0 right-0 h-2 bg-blue-700" />
                 <div className="h-full flex flex-col items-center justify-center text-center gap-6">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/novrsoc.jpg" alt="NovrSOC" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
@@ -159,12 +163,23 @@ export function SecurityReportTemplate({ report }: { report: ReportData }) {
                 </table>
 
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Alert Distribution by Day</p>
-                <div className="flex items-end gap-1.5 h-32 border-b border-slate-200 pb-1">
-                    {wazuh.daily_alerts.map((d, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                            <div style={{ height: `${Math.max(2, Math.round((d.count / maxDaily) * 100))}%` }} className="w-full bg-blue-700 rounded-t" />
+                <div className="flex items-center gap-4 mb-2">
+                    {[['#dc2626', 'Critical'], ['#ea580c', 'High'], ['#1d4ed8', 'Total']].map(([c, l]) => (
+                        <div key={l} className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: c }} />
+                            <span className="text-[9px] text-slate-500">{l}</span>
                         </div>
                     ))}
+                </div>
+                <div className="flex items-end gap-1.5 h-32 border-b border-slate-200 pb-1">
+                    {wazuh.daily_alerts.map((d, i) => {
+                        const color = d.critical > 0 ? '#dc2626' : d.high > 0 ? '#ea580c' : '#1d4ed8';
+                        return (
+                            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+                                <div style={{ height: `${Math.max(2, Math.round((d.count / maxDaily) * 100))}%`, backgroundColor: color }} className="w-full rounded-t" />
+                            </div>
+                        );
+                    })}
                 </div>
                 <div className="flex gap-1.5">
                     {wazuh.daily_alerts.map((d, i) => (
@@ -192,7 +207,7 @@ export function SecurityReportTemplate({ report }: { report: ReportData }) {
                     </div>
                 </div>
                 <p className="text-xs text-slate-500 italic">
-                    Intelligence sourced from Cybernovr&apos;s proprietary threat intelligence platform, updated every 15 minutes.
+                    Intelligence updated every 15 minutes from 7 global sources via Cybernovr&apos;s proprietary threat intelligence platform.
                 </p>
                 <Footer orgName={report.orgName} month={report.month} />
             </Page>
@@ -273,8 +288,8 @@ export function SecurityReportTemplate({ report }: { report: ReportData }) {
                 <ul className="space-y-3">
                     {recommendations.map((r, i) => (
                         <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-700 mt-1.5 flex-shrink-0" />
-                            <span>{r}</span>
+                            <span className="flex-shrink-0">{r.urgent ? '⚠️' : '✅'}</span>
+                            <span className={r.urgent ? 'font-semibold text-amber-800' : ''}>{r.text}</span>
                         </li>
                     ))}
                 </ul>
