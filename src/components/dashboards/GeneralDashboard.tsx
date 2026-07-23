@@ -31,7 +31,13 @@ const SectionHeader = ({ title, badge }: { title: string; badge?: string }) => (
 /* ── 1A: Global Threat Map ── */
 interface AttackOrigin { country: string; x: number; y: number; count: string; label: string; color: string; dashed: string }
 interface CtipCountry { country: string; name: string; count: number; flag: string }
+interface WazuhAttackOrigin { country: string; name: string; count: number; label: string }
 const NIGERIA_X = 500, NIGERIA_Y = 240;
+
+function isoToFlag(code: string): string {
+    if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+    return String.fromCodePoint(...[...code].map((c) => 127397 + c.charCodeAt(0)));
+}
 
 const THREAT_VECTORS_FALLBACK: { label: string; pct: number; color: string }[] = [
     { label: 'Malware Activity', pct: 42, color: '#dc2626' },
@@ -44,16 +50,36 @@ const COUNTRY_COORDS: Record<string, { x: number; y: number }> = {
     CN: { x: 740, y: 140 }, RU: { x: 660, y: 75 }, US: { x: 140, y: 140 },
     BR: { x: 220, y: 300 }, IN: { x: 660, y: 190 }, DE: { x: 480, y: 95 },
     NL: { x: 465, y: 90 }, FR: { x: 465, y: 115 }, GB: { x: 455, y: 85 }, UA: { x: 525, y: 100 },
+    KR: { x: 790, y: 150 }, ID: { x: 730, y: 230 }, JP: { x: 800, y: 120 }, VN: { x: 710, y: 200 },
+    TR: { x: 560, y: 110 }, PL: { x: 495, y: 80 }, CA: { x: 120, y: 90 }, AU: { x: 760, y: 320 },
 };
 const ARC_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#7c3aed', '#2563eb'];
 const ARC_DASHES = ['6 4', '4 3', '8 3', '5 5', '3 6'];
+const WAZUH_ARC_COLORS = ['#b91c1c', '#dc2626', '#ef4444', '#f87171', '#fca5a5'];
 
-const GlobalThreatMap = ({ ctipStats, countries }: {
+const GlobalThreatMap = ({ ctipStats, countries, wazuhOrigins }: {
     ctipStats: { total_iocs: number } | null;
     countries: CtipCountry[] | null;
+    wazuhOrigins: WazuhAttackOrigin[] | null;
 }) => {
     const [timeRange, setTimeRange] = useState('Last 24hr');
-    const attackOrigins: AttackOrigin[] = (countries ?? []).map((c, i) => {
+
+    const wazuhAttackTotal = wazuhOrigins ? wazuhOrigins.reduce((sum, o) => sum + o.count, 0) : null;
+    const attacksBlockedToday = wazuhAttackTotal && wazuhAttackTotal > 0 ? wazuhAttackTotal : ctipStats?.total_iocs ?? null;
+
+    const wazuhMapOrigins: AttackOrigin[] = (wazuhOrigins ?? []).map((c, i) => {
+        const coord = COUNTRY_COORDS[c.country] ?? { x: 500, y: 60 };
+        return {
+            country: `${isoToFlag(c.country)} ${c.name}`,
+            x: coord.x,
+            y: coord.y,
+            count: c.count.toLocaleString(),
+            label: c.label,
+            color: WAZUH_ARC_COLORS[i % WAZUH_ARC_COLORS.length],
+            dashed: ARC_DASHES[i % ARC_DASHES.length],
+        };
+    });
+    const ctipMapOrigins: AttackOrigin[] = (countries ?? []).map((c, i) => {
         const coord = COUNTRY_COORDS[c.country] ?? { x: 500, y: 60 };
         return {
             country: `${c.flag} ${c.name}`,
@@ -65,6 +91,7 @@ const GlobalThreatMap = ({ ctipStats, countries }: {
             dashed: ARC_DASHES[i % ARC_DASHES.length],
         };
     });
+    const attackOrigins: AttackOrigin[] = [...wazuhMapOrigins, ...ctipMapOrigins];
     return (
         <Card>
             <div className="p-4">
@@ -76,7 +103,7 @@ const GlobalThreatMap = ({ ctipStats, countries }: {
                     <div className="flex items-center gap-2">
                         <div className="text-right mr-2">
                             <p className="text-[10px] text-slate-500">Attacks blocked today</p>
-                            <p className="text-sm font-black text-red-600">{ctipStats ? ctipStats.total_iocs.toLocaleString() : '...'}</p>
+                            <p className="text-sm font-black text-red-600">{attacksBlockedToday !== null ? attacksBlockedToday.toLocaleString() : '...'}</p>
                         </div>
                         {['Last 1hr', 'Last 24hr', 'Last 7 days'].map(r => (
                             <button key={r} onClick={() => setTimeRange(r)}
@@ -135,17 +162,37 @@ const GlobalThreatMap = ({ ctipStats, countries }: {
                     ))}
                 </div>
 
-                {attackOrigins.length > 0 ? (
-                    <div className="mt-3 grid grid-cols-5 gap-2">
-                        {attackOrigins.map(o => (
-                            <div key={o.country} className="bg-white rounded-lg p-2 border border-slate-200 text-center">
-                                <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
-                                <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
-                                <p className="text-[9px] text-slate-500">{o.label}</p>
-                            </div>
-                        ))}
+                {wazuhMapOrigins.length > 0 && (
+                    <div className="mt-3">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">⚔️ Active Attacks on Endpoints</p>
+                        <div className="grid grid-cols-5 gap-2">
+                            {wazuhMapOrigins.map(o => (
+                                <div key={o.country} className="bg-white rounded-lg p-2 border border-red-100 text-center">
+                                    <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
+                                    <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
+                                    <p className="text-[9px] text-slate-500">{o.label}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                ) : (
+                )}
+
+                {ctipMapOrigins.length > 0 && (
+                    <div className="mt-3">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">🌐 Intelligence Sources</p>
+                        <div className="grid grid-cols-5 gap-2">
+                            {ctipMapOrigins.map(o => (
+                                <div key={o.country} className="bg-white rounded-lg p-2 border border-slate-200 text-center">
+                                    <p className="text-[11px] font-bold text-slate-700">{o.country}</p>
+                                    <p className="text-[10px] font-black mt-0.5" style={{ color: o.color }}>{o.count}</p>
+                                    <p className="text-[9px] text-slate-500">{o.label}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {attackOrigins.length === 0 && (
                     <div className="mt-3 text-center py-3">
                         <p className="text-[10px] text-slate-400">No active attack data</p>
                     </div>
@@ -458,6 +505,16 @@ export const GeneralDashboard = () => {
             .catch(() => setCtipCountries([]));
     }, []);
 
+    const [wazuhAttackOrigins, setWazuhAttackOrigins] = useState<WazuhAttackOrigin[] | null>(null);
+
+    useEffect(() => {
+        const group = getPortalContext().wazuhGroup;
+        fetch(`/api/wazuh/attack-origins${group ? `?group=${encodeURIComponent(group)}` : ''}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then(data => setWazuhAttackOrigins(Array.isArray(data) ? data : []))
+            .catch(() => setWazuhAttackOrigins([]));
+    }, []);
+
     const [nigeriaAdvisories, setNigeriaAdvisories] = useState<FeedAdvisory[] | null>(null);
 
     useEffect(() => {
@@ -579,7 +636,7 @@ export const GeneralDashboard = () => {
                 {kpiCards.map((kpi, idx) => <KpiCard key={idx} {...kpi} />)}
             </div>
 
-            <GlobalThreatMap ctipStats={ctipStats} countries={ctipCountries} />
+            <GlobalThreatMap ctipStats={ctipStats} countries={ctipCountries} wazuhOrigins={wazuhAttackOrigins} />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <NigeriaThreatMap advisories={nigeriaAdvisories} />
