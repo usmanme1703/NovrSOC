@@ -9,7 +9,6 @@ import { DataTable } from '../shared/DataTable';
 import { StatusBadge } from '../shared/StatusBadge';
 import { GaugeChart } from '../shared/GaugeChart';
 import { generalActivityLog } from '@/data/mockData';
-import { FRAMEWORKS } from '@/lib/mock/compliance';
 import { getPortalContext } from '@/lib/portal-context';
 
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -264,36 +263,54 @@ const NigeriaThreatMap = ({ advisories }: { advisories: FeedAdvisory[] | null })
 };
 
 /* ── 1C: Compliance Snapshot ── */
-const ComplianceCard = ({ f }: { f: { name: string; score: number; status: string } }) => (
+interface ComplianceScore { name: string; score: number; status: string }
+const COMPLIANCE_STATUS_STYLE: Record<string, string> = {
+    'Compliant': 'bg-emerald-50 text-emerald-600 border border-emerald-200',
+    'Partial': 'bg-amber-50 text-amber-600 border border-amber-200',
+    'Not Assessed': 'bg-slate-100 text-slate-500 border border-slate-200',
+};
+
+const ComplianceCard = ({ f }: { f: ComplianceScore }) => (
     <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center text-center hover:border-blue-200 transition-colors group shadow-sm">
         <div className="relative mb-1">
             <GaugeChart value={f.score} size={56} strokeWidth={6} />
             <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black text-slate-900">{f.score}%</span>
         </div>
         <p className="text-[9px] font-medium text-slate-600 mt-1 leading-tight">{f.name}</p>
-        <span className={`mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${f.status === 'Compliant' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+        <span className={`mt-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full ${COMPLIANCE_STATUS_STYLE[f.status] ?? COMPLIANCE_STATUS_STYLE['Not Assessed']}`}>
             {f.status}
         </span>
         <Link href="/compliance" className="mt-1.5 text-[8px] text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity">Details →</Link>
     </div>
 );
 
-const ComplianceSnapshot = () => (
-    <Card>
-        <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-                <SectionHeader title="Compliance Snapshot" />
-                <Link href="/compliance" className="text-[10px] font-semibold text-blue-700 hover:underline">View All →</Link>
+const ComplianceSnapshot = ({ scores }: { scores: ComplianceScore[] | null }) => {
+    const rows = scores ?? [];
+    return (
+        <Card>
+            <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <SectionHeader title="Compliance Snapshot" />
+                    <Link href="/compliance" className="text-[10px] font-semibold text-blue-700 hover:underline">View All →</Link>
+                </div>
+                {scores === null ? (
+                    <div className="grid grid-cols-4 gap-3">
+                        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />)}
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-4 gap-3">
+                            {rows.slice(0, 4).map(f => <ComplianceCard key={f.name} f={f} />)}
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 mt-3">
+                            {rows.slice(4).map(f => <ComplianceCard key={f.name} f={f} />)}
+                        </div>
+                    </>
+                )}
             </div>
-            <div className="grid grid-cols-4 gap-3">
-                {FRAMEWORKS.slice(0, 4).map(f => <ComplianceCard key={f.name} f={f} />)}
-            </div>
-            <div className="grid grid-cols-3 gap-3 mt-3">
-                {FRAMEWORKS.slice(4).map(f => <ComplianceCard key={f.name} f={f} />)}
-            </div>
-        </div>
-    </Card>
-);
+        </Card>
+    );
+};
 
 /* ── 1E: Onboarded Clients ── */
 interface OnboardedClient { id: number; name: string; industry: string | null; status: string; agentsTotal: number; activeIncidents: number; wazuhGroup: string | null }
@@ -551,6 +568,25 @@ export const GeneralDashboard = () => {
             .catch(() => setVendorRisk(null));
     }, []);
 
+    const [complianceScores, setComplianceScores] = useState<ComplianceScore[] | null>(null);
+
+    useEffect(() => {
+        const portal = getPortalContext();
+        const orgId = portal.isPortal ? portal.orgId : 1;
+        if (!orgId) { setComplianceScores([]); return; }
+        fetch(`/api/compliance?orgId=${orgId}`, { cache: 'no-store' })
+            .then(r => r.json())
+            .then((data: { shortName?: string; score?: number; assessed?: number }[]) => {
+                if (!Array.isArray(data)) { setComplianceScores([]); return; }
+                setComplianceScores(data.map((f) => ({
+                    name: f.shortName ?? '—',
+                    score: f.score ?? 0,
+                    status: (f.assessed ?? 0) === 0 ? 'Not Assessed' : (f.score ?? 0) >= 80 ? 'Compliant' : 'Partial',
+                })));
+            })
+            .catch(() => setComplianceScores([]));
+    }, []);
+
     const trendBars = trendData
         ? (() => {
             const maxAlerts = Math.max(...trendData.map(d => d.alerts), 1);
@@ -640,7 +676,7 @@ export const GeneralDashboard = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <NigeriaThreatMap advisories={nigeriaAdvisories} />
-                <ComplianceSnapshot />
+                <ComplianceSnapshot scores={complianceScores} />
             </div>
 
             <OnboardedClientsWidget clients={clients} loading={clientsLoading} />
